@@ -2,10 +2,11 @@
  [{description, "An OTP application"},
   {vsn, "0.1.0"},
   {registered, []},
-  {mod, {'mob_app', []}},
+  {mod, {'mob_app', [{port, ["4321"]}]}},
   {applications,
    [kernel,
-    stdlib
+    stdlib,
+    getopt
    ]},
   {env,[]},
   {modules, []},
