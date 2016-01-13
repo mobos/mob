@@ -6,7 +6,10 @@
   {applications,
    [kernel,
     stdlib,
-    getopt
+    getopt,
+    jsx,
+    lager,
+    meck
    ]},
   {env,[]},
   {modules, []},
