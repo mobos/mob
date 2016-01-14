@@ -7,6 +7,7 @@
 -export([k_closest_to/3]).
 -export([closest_contacts/2]).
 -export([refresh/1]).
+-export([refresh_bucket/3]).
 
 -type contact() :: {pid(), integer()} .
 
@@ -138,7 +139,7 @@ distance(FromPeerId, ToPeerId) ->
     FromPeerId bxor ToPeerId.
 
 is_closest({_, PeerAId}, {_, PeerBId}, Key) ->
-    kbucket:distance(Key, PeerAId) < kbucket:distance(Key, PeerBId).
+    distance(Key, PeerAId) < distance(Key, PeerBId).
 
 bucket_index(Distance) ->
     trunc(math:log2(Distance)).

@@ -29,13 +29,19 @@ start_link(Args) ->
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([Args]) ->
     SupFlags = #{strategy => one_for_one, intensity => 1, period => 5},
-
-    ChildSpecs = [#{id => tcp_adapter,
+    ChildSpecs = [
+                  #{id => tcp_adapter,
                     start => {tcp_adapter, start_link, [Args]},
                     restart => permanent,
                     shutdown => brutal_kill,
-                    type => worker,
-                    modules => [tcp_adapter]}],
+                    type => worker},
+
+                  #{id => mob,
+                    start => {mob, start_link, []},
+                    restart => permanent,
+                    shutdown => brutal_kill,
+                    type => worker}
+                 ],
 
     {ok, {SupFlags, ChildSpecs}}.
 

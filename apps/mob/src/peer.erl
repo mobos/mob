@@ -12,6 +12,7 @@
 -export([check_link/2]).
 -export([join/2]).
 -export([store/3]).
+-export([hash_key/1]).
 
 -include("peer.hrl").
 -define (TIMEOUT_REQUEST, 500).

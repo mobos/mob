@@ -13,10 +13,11 @@ exec_command_line(CommandLine) ->
     end.
 
 handle_command({node, true}, _CommandLine) ->
-    {ok, atom_to_list(node())};
+    {ok, atom_to_list(mob:node_name())};
 handle_command({join, JoinNode}, _CommandLine) ->
-    Response = net_kernel:connect_node(list_to_atom(JoinNode)),
-    {ok, atom_to_list(Response)};
+    NodeName = list_to_atom(JoinNode),
+    Result = mob:join(NodeName),
+    {ok, atom_to_list(Result)};
 handle_command(_Msg, _) ->
     unknown.
 
