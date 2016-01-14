@@ -169,8 +169,11 @@ handle_check_link(Peer, MyContact, ToContact) ->
 handle_iterative_find_peers(#peer{kbucket = Kbucket, mycontact = MyContact, alpha = Alpha}, Key) ->
     network:find_peers(MyContact, Kbucket, Key, Alpha).
 
-handle_iterative_find_value(#peer{kbucket = Kbucket, mycontact = MyContact, alpha = Alpha}, Key) ->
-    network:find_value(MyContact, Kbucket, Key, Alpha).
+handle_iterative_find_value(#peer{kbucket = Kbucket, mycontact = MyContact, alpha = Alpha, repository = Repo}, Key) ->
+    case repository:get(Repo, Key) of
+        {found, Value} -> {found, Value};
+        _ ->  network:find_value(MyContact, Kbucket, Key, Alpha)
+    end.
 
 hash_key(Key) ->
     HashedKey = crypto:hash(sha, atom_to_list(Key)),

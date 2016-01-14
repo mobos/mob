@@ -246,6 +246,16 @@ should_store_a_key_on_closest_peers_test() ->
     peer:find_value_of(PeerD, HashKey, FakePeer),
     ?receiving({PeerD, ResponseD}, ?assertEqual([PeerA, PeerB, PeerC], ResponseD)).
 
+should_find_a_value_stored_in_itself_test() ->
+    Key     = key,
+    Value   = "value",
+
+    PeerA = peer:start(16#A62F2225BF70BFACCBC7F1EF2A397836717377DA, ?K, ?ALPHA),
+    peer:iterative_store(PeerA, {Key, Value}),
+
+    timer:sleep(50),
+    ?assertEqual({found, Value}, peer:iterative_find_value(PeerA, Key)).
+
 should_find_a_value_stored_in_a_network_test() ->
     Key     = key,
     Value   = "value",
@@ -267,7 +277,7 @@ should_find_a_value_stored_in_a_network_test() ->
     peer:iterative_store(PeerA, {Key, Value}),
     timer:sleep(50),
 
-    ?assertEqual(Value, peer:iterative_find_value(PeerD, Key)).
+    ?assertEqual({found, Value}, peer:iterative_find_value(PeerD, Key)).
 
 new_peer(Id, K, Alpha) ->
     Kbucket = kbucket:start(K, 4),

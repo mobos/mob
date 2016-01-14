@@ -4,6 +4,7 @@
 
 -define(OPTIONS, [
                   {node, 'n', "node", boolean, undefined},
+                  {deploy, 'd', "deploy", {'string', undefined}, undefined},
                   {join, 'j', "join", {'string', undefined}, undefined}
                  ]).
 

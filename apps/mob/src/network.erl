@@ -61,7 +61,7 @@ find_worker(ExecutorContact, ExecutorKbucket, KnowlegeContacts, Key, BestActive,
             end;
 
          {ok, found, Value} ->
-            Value
+            {found, Value}
     end.
 
 alpha_find_collector(0, Worker, Discovered, Active, Expired) ->

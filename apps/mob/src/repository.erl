@@ -4,6 +4,7 @@
 
 -export([start_link/0]).
 -export([init/1]).
+-export([get/2]).
 -export([handle_call/3]).
 -export([handle_cast/2]).
 -export([handle_info/2]).
@@ -14,6 +15,9 @@
 
 start_link() ->
         gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+
+get(Repository, Key) ->
+        gen_server:call(Repository, {get, Key}).
 
 init([]) ->
         {ok, #{}}.

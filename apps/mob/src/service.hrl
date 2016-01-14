@@ -1,0 +1,1 @@
+-record(service, {name, command}).
