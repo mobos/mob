@@ -34,9 +34,17 @@ node_name() ->
 
 %% Callbacks
 
+init_peer() ->
+    {ok, PeerConf} = application:get_env(kademlia),
+
+    {k, K} = lists:keyfind(k, 1, PeerConf),
+    {alpha, Alpha} = lists:keyfind(alpha, 1, PeerConf),
+
+    Id = peer:hash_key(node_name()),
+    peer:start(Id, K, Alpha).
+
 init([]) ->
-    Id = peer:hash_key(node()),
-    Peer = peer:start(Id, 20, 3),
+    Peer = init_peer(),
     {ok, #state{peer = Peer}}.
 
 handle_call(peer, _From, State = #state{peer = Peer}) ->
