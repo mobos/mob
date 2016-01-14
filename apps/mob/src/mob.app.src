@@ -9,7 +9,9 @@
     getopt,
     jsx,
     lager,
-    meck
+    meck,
+    crypto,
+    lager_logstash
    ]},
   {env,[]},
   {modules, []},

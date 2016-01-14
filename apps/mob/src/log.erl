@@ -3,7 +3,7 @@
 -export([kbucket/3, kbucket/4]).
 -export([pid_to_field/2]).
 -export([contact_to_field/2]).
--export([log/3]).
+-export([log/3, log/2]).
 
 -include("peer.hrl").
 -record(kbucket, {peer, k, contacts, keylength}).
@@ -18,6 +18,8 @@ peer(Peer, Fields, Message, Args) ->
                   {module, peer}],
     log(PeerFields ++ Fields, Message, Args).
 
+log(Message, Args) ->
+    log([], Message, Args).
 log(Fields, Message, Args) ->
     lager:info(Fields, Message, Args).
 
