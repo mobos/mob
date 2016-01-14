@@ -1,4 +1,4 @@
--sname mob
+-sname ${NODE_NAME}
 
 -setcookie mob_cookie
 
