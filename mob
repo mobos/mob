@@ -1,0 +1,25 @@
+#!/bin/bash
+# A POSIX variable
+OPTIND=1         # Reset in case getopts has been used previously in the shell.
+
+MOB_PATH="/home/nan/workspace/mob/_build/default/rel/mob/bin"
+PORT=
+
+while getopts "h?p:" opt; do
+    case "$opt" in
+    h|\?)
+        show_help
+        exit 0
+        ;;
+    p)  PORT=$OPTARG
+        ;;
+    esac
+done
+
+shift $((OPTIND-1))
+
+[ "$1" = "--" ] && shift
+
+if [ ! -z "$PORT" ]; then
+    RELX_REPLACE_OS_VARS=true NODE_NAME=$PORT $MOB_PATH/mob-0.1.0 console -port $PORT
+fi

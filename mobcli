@@ -1,0 +1,57 @@
+#!/bin/bash
+# A POSIX variable
+OPTIND=1         # Reset in case getopts has been used previously in the shell.
+
+PORT=
+JOIN_ADDR=
+NODE=
+
+while getopts "h?j:p:n" opt; do
+    case "$opt" in
+    h|\?)
+        show_help
+        exit 0
+        ;;
+    p)  PORT=$OPTARG
+        ;;
+    j)  JOIN_ADDR=$OPTARG
+        ;;
+    n)  NODE=1
+        ;;
+    esac
+done
+
+shift $((OPTIND-1))
+
+[ "$1" = "--" ] && shift
+
+send_command() {
+    COMMAND_LINE=$1
+    TO_ADDRESS=$2
+    TO_PORT=$3
+    echo -n "$COMMAND_LINE" | netcat $TO_ADDRESS $TO_PORT
+}
+
+node_name() {
+    TO_ADDRESS=$1
+    TO_PORT=$2
+
+    send_command "--node" $TO_ADDRESS $TO_PORT
+}
+
+ip_addr_to_array() {
+    FULL_ADDRESS=$1
+}
+
+if [ ! -z "$JOIN_ADDR" ]; then
+    echo "[i] joining with $JOIN_ADDR"
+    ADDRESS=(${JOIN_ADDR//:/ })
+    NODE=$(node_name ${ADDRESS[0]} ${ADDRESS[1]})
+    STATUS=$(send_command "--join $NODE" 127.0.0.1 $PORT)
+    echo "[i] response: $STATUS"
+elif  [ ! -z "$NODE" ]; then
+    echo "[i] asking for node name..."
+    NODE_NAME=$(node_name 127.0.0.1 $PORT)
+    echo "[i] response: $NODE_NAME"
+fi
+
