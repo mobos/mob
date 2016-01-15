@@ -8,7 +8,6 @@
 -export([run/1]).
 -export([deploy/1]).
 -export([node_name/0]).
--export([peer/1]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -31,9 +30,6 @@ run(Service) ->
 
 join(NodeName) ->
     gen_server:call(mob, {join, NodeName}).
-
-peer(Node) ->
-    gen_server:call({mob, Node}, peer).
 
 node_name() ->
     node().
@@ -89,7 +85,7 @@ code_change(_OldVsn, State, _Extra) ->
 % Handlers
 handle_join(NodeName, State = #state{peer = Peer}) ->
     ConnectionResult = net_kernel:connect_node(NodeName),
-    BootstrapPeer = peer(NodeName),
+    BootstrapPeer = remote_mob:peer(NodeName),
 
     %% this "should" never fail since every node annunce itself
     UpdatedNodes = discovery:merge_nodes(Peer, BootstrapPeer),
