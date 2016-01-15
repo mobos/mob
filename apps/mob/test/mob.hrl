@@ -1,9 +1,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 should_find_the_correct_node_and_deploy_a_service_test() ->
-    meck:new(service, [non_strict]),
-    meck:new(discovery, [non_strict]),
-    meck:new(remote_mob, [non_strict]),
+    start_mocks([service, discovery, remote_mob]),
 
     Service = "{
                  \"name\": \"my_service\",
@@ -28,13 +26,7 @@ should_find_the_correct_node_and_deploy_a_service_test() ->
     ?assertEqual(State, NewState),
     ?assertEqual(FakeNode, Reply),
 
-
-    meck:validate(service),
-    meck:validate(discovery),
-    meck:validate(remote_mob),
-    meck:unload(service),
-    meck:unload(discovery),
-    meck:unload(remote_mob).
+    stop_mocks([service, discovery, remote_mob]).
 
 should_reply_with_an_error_message_if_the_service_isnt_correct_test() ->
     meck:new(service, [non_strict]),
@@ -51,5 +43,16 @@ should_reply_with_an_error_message_if_the_service_isnt_correct_test() ->
     ?assertEqual(ErrorMessage, Reply),
     ?assertEqual(State, NewState),
 
-    meck:validate(service),
-    meck:unload(service).
+    stop_mocks([service]).
+
+
+start_mocks([]) -> ok;
+start_mocks([Mod | Modules]) ->
+    meck:new(Mod, [non_strict]),
+    start_mocks(Modules).
+
+stop_mocks([]) -> ok;
+stop_mocks([Mod | Modules]) ->
+    ?assert(meck:validate(Mod)),
+    meck:unload(Mod),
+    stop_mocks(Modules).
