@@ -42,4 +42,21 @@ should_find_where_is_deployed_a_service_test() ->
     Result = discovery:where_deployed(FakePeer, Service),
 
     ?assertEqual(1, meck:num_calls(peer, iterative_find_value, [FakePeer, Service#service.name])),
-    ?assertEqual({found, Node}, Result).
+    ?assertEqual({found, Node}, Result),
+
+    meck:validate(peer),
+    meck:unload(peer).
+
+should_announce_a_deployed_service_test() ->
+    meck:new(peer, [non_strict]),
+    FakePeer = self(),
+    FakeNode = node(),
+    Service = #service{name = 'my_service', command = "a command"},
+
+    meck:expect(peer, iterative_store, fun(_Peer, {_Key, _Value}) -> ok end),
+    discovery:announce_spawned_service(FakePeer, Service, FakeNode),
+
+    ?assertEqual(1, meck:num_calls(peer, iterative_store, [FakePeer, {Service#service.name, FakeNode}])),
+
+    meck:validate(peer),
+    meck:unload(peer).

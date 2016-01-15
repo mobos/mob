@@ -52,7 +52,7 @@ should_not_deploy_an_already_deployed_service_test() ->
     ?assertEqual(1, meck:num_calls(service, parse, [Service])),
     ?assertEqual(1, meck:num_calls(discovery, where_deployed, [FakePeer, FakeParsedService])),
     ?assertEqual(State, NewState),
-    ?assertEqual(FakeNode, Reply),
+    ?assertEqual('already_deployed', Reply),
 
     stop_mocks([service, discovery]).
 
@@ -64,7 +64,6 @@ should_reply_with_an_error_message_if_the_service_isnt_correct_test() ->
     State = #state{peer = FakePeer},
     ErrorMessage = format_error,
 
-
     meck:expect(service, parse, fun(_Service) -> {error, ErrorMessage} end),
     {Reply, NewState} = mob:handle_deploy(WrongService, State),
 
@@ -72,7 +71,6 @@ should_reply_with_an_error_message_if_the_service_isnt_correct_test() ->
     ?assertEqual(State, NewState),
 
     stop_mocks([service]).
-
 
 start_mocks([]) -> ok;
 start_mocks([Mod | Modules]) ->

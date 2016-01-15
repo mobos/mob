@@ -68,8 +68,8 @@ handle_call(_Request, _From, State) ->
     {reply, Reply, State}.
 
 handle_cast({run, Service}, State) ->
-    handle_run(Service, State),
-    {noreply, State};
+    NewState = handle_run(Service, State),
+    {noreply, NewState};
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -102,8 +102,14 @@ handle_deploy(Service, State) ->
             end,
     {Reply, State}.
 
-handle_run(Service, _State) ->
-    service_supervisor:run(Service).
+handle_run(Service, State = #state{peer = Peer}) ->
+    %% XXX Currently the service is annunced *BEFORE* the service
+    %% is really spawned. To be sure we should notify this module
+    %% when the service is really spawned and proceed with the
+    %% announce
+    discovery:announce_spawned_service(Peer, Service, node_name()),
+    service_supervisor:run(Service),
+    State.
 
 do_deploy(ParsedService, #state{peer = Peer}) ->
     case discovery:where_deployed(Peer, ParsedService) of
@@ -114,7 +120,7 @@ do_deploy(ParsedService, #state{peer = Peer}) ->
                     Node;
                 {error, Error} -> Error
             end;
-        {found, Node} -> Node
+        {found, _Node} -> already_deployed
     end.
 
 -ifdef(TEST).

@@ -3,6 +3,7 @@
 -export([merge_nodes/2]).
 -export([find_available_node/2]).
 -export([announce_nodes/2]).
+-export([announce_spawned_service/3]).
 -export([where_deployed/2]).
 
 -include("service.hrl").
@@ -25,6 +26,10 @@ find_available_node(Peer, _Service) ->
 
 announce_nodes(Peer, UpdatedNodes) ->
     peer:iterative_store(Peer, {?NODES_KEY, UpdatedNodes}).
+
+announce_spawned_service(Peer, Service, OwningNode) ->
+    ServiceName = Service#service.name,
+    peer:iterative_store(Peer, {ServiceName, OwningNode}).
 
 where_deployed(Peer, Service) ->
     ServiceName = Service#service.name,
