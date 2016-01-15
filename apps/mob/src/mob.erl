@@ -84,7 +84,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 % Handlers
 handle_join(NodeName, State = #state{peer = Peer}) ->
-    ConnectionResult = net_kernel:connect_node(NodeName),
+    ConnectionResult = remote_mob:connect(NodeName),
     BootstrapPeer = remote_mob:peer(NodeName),
 
     UpdatedNodes = discovery:merge_nodes(Peer, BootstrapPeer),
