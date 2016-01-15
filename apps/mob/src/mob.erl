@@ -55,7 +55,7 @@ init([]) ->
 handle_call(peer, _From, State = #state{peer = Peer}) ->
     {reply, Peer, State};
 
-handle_call({join, NodeName}, _From, State = #state{peer = Peer}) ->
+handle_call({join, NodeName}, _From, State) ->
     {Reply, State} = handle_join(NodeName, State),
     {reply, Reply, State};
 
