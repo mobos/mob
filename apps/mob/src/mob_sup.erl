@@ -40,6 +40,12 @@ init([Args]) ->
                     start => {mob, start_link, []},
                     restart => permanent,
                     shutdown => brutal_kill,
+                    type => worker},
+
+                  #{id => service_supervisor,
+                    start => {service_supervisor, start_link, []},
+                    restart => permanent,
+                    shutdown => brutal_kill,
                     type => worker}
                  ],
 
