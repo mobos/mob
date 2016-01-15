@@ -52,14 +52,18 @@ code_change(_OldVsn, State, _Extra) ->
 
 handle_run(Service, State = #state{spawned = Spawned}) ->
     ServiceName = Service#service.name,
-    case lists:member(ServiceName, Spawned) of
-        true ->  service:start(ServiceName),
-                 State;
-        false -> service:spawn(Service),
-                 service:start(ServiceName),
-                 State#state{spawned = [ServiceName | Spawned]}
+    case is_spawned(ServiceName, State) of
+        true ->
+            service:start(ServiceName),
+            State;
+        false ->
+            service:spawn(Service),
+            service:start(ServiceName),
+            State#state{spawned = [ServiceName | Spawned]}
     end.
 
+is_spawned(ServiceName, #state{spawned = Spawned}) ->
+    lists:member(ServiceName, Spawned).
 
 -ifdef(TEST).
 -compile([export_all]).
