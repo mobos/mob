@@ -30,7 +30,7 @@ json_to_service(BinaryService) ->
     {<<"command">>, BinaryCommand} = lists:keyfind(<<"command">>, 1, ParsedService),
 
     #service{
-       name = binary_to_list(BinaryName),
+       name = binary_to_atom(BinaryName, utf8),
        command = binary_to_list(BinaryCommand)
     }.
 

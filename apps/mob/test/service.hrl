@@ -1,7 +1,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 should_parse_a_service_test() ->
-    Name = "my_service",
+    Name = my_service,
     Command = "a command",
 
     Service = "{
