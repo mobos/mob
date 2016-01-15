@@ -15,8 +15,6 @@
 
 -include("service.hrl").
 
--record(state, {}).
-
 parse(Service) ->
     BinaryService = list_to_binary(Service),
     case jsx:is_json(BinaryService) of
@@ -34,13 +32,13 @@ json_to_service(BinaryService) ->
        command = binary_to_list(BinaryCommand)
     }.
 
-spawn(Service = {name = ServiceName}) ->
+spawn(Service = #service{name = ServiceName}) ->
         gen_fsm:start({local, ServiceName}, ?MODULE, [Service], []).
 
 %% gen_fsm callbacks
 
-init([]) ->
-        {ok, spawned, #state{}}.
+init([Service]) ->
+        {ok, spawned, Service}.
 
 spawned(_Event, State) ->
         {next_state, spawned, State}.

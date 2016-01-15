@@ -20,3 +20,10 @@ should_fail_if_the_format_isnt_json_test() ->
     {error, Error} = service:parse(Service),
 
     ?assertEqual(Error, format_error).
+
+should_spawn_a_service_registering_its_name_test() ->
+    Service = #service{name = my_service, command = "a command"},
+
+    {ok, ServicePid} = service:spawn(Service),
+
+    ?assert(lists:member(my_service, erlang:registered())).
