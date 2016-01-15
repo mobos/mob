@@ -48,8 +48,8 @@ init_peer() ->
 init([]) ->
     Peer = init_peer(),
     %% annunce itself
-    Nodes = sets:new(),
-    peer:iterative_store(Peer, {nodes, sets:add_element(node_name(), Nodes)}),
+    Nodes = sets:add_element(node_name(), sets:new()),
+    discovery:announce_nodes(Peer, Nodes),
     {ok, #state{peer = Peer}}.
 
 handle_call(peer, _From, State = #state{peer = Peer}) ->
@@ -87,13 +87,12 @@ handle_join(NodeName, State = #state{peer = Peer}) ->
     ConnectionResult = net_kernel:connect_node(NodeName),
     BootstrapPeer = remote_mob:peer(NodeName),
 
-    %% this "should" never fail since every node annunce itself
     UpdatedNodes = discovery:merge_nodes(Peer, BootstrapPeer),
     peer:join(Peer, BootstrapPeer),
 
     %% XXX: here should we wait to be sure that the joining process is
     %% completed ?
-    peer:iterative_store(Peer, {nodes, UpdatedNodes}),
+    discovery:announce_nodes(Peer, UpdatedNodes),
     {ConnectionResult, State}.
 
 handle_deploy(Service, State) ->
