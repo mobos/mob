@@ -31,3 +31,15 @@ should_return_an_error_if_no_nodes_are_found_test() ->
 
     meck:validate(peer),
     meck:unload(peer).
+
+should_find_where_is_deployed_a_service_test() ->
+    meck:new(peer, [non_strict]),
+    FakePeer = self(),
+    Node = node(),
+    Service = #service{name = my_service, command = "a command"},
+
+    meck:expect(peer, iterative_find_value, fun(_Peer, _Key) -> {found, Node} end),
+    Result = discovery:where_deployed(FakePeer, Service),
+
+    ?assertEqual(1, meck:num_calls(peer, iterative_find_value, [FakePeer, Service#service.name])),
+    ?assertEqual({found, Node}, Result).

@@ -106,10 +106,15 @@ handle_run(Service, _State) ->
     service_supervisor:run(Service).
 
 do_deploy(ParsedService, #state{peer = Peer}) ->
-    case discovery:find_available_node(Peer, ParsedService) of
-        {ok, Node} -> remote_mob:run(Node, ParsedService),
-                      Node;
-        {error, Error} -> Error
+    case discovery:where_deployed(Peer, ParsedService) of
+        {error, not_found} ->
+            case discovery:find_available_node(Peer, ParsedService) of
+                {ok, Node} ->
+                    remote_mob:run(Node, ParsedService),
+                    Node;
+                {error, Error} -> Error
+            end;
+        {found, Node} -> Node
     end.
 
 -ifdef(TEST).

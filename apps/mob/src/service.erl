@@ -3,6 +3,7 @@
 -behaviour(gen_fsm).
 
 -export([spawn/1]).
+-export([start/1]).
 -export([parse/1]).
 
 -export([init/1,
@@ -35,11 +36,18 @@ json_to_service(BinaryService) ->
 spawn(Service = #service{name = ServiceName}) ->
     gen_fsm:start({local, ServiceName}, ?MODULE, [Service], []).
 
+start(ServiceName) ->
+    gen_fsm:send_event(ServiceName, start).
+
 %% gen_fsm callbacks
 
 init([Service]) ->
+    log:log("[~p] Spawned Service: ~p", [?MODULE, Service#service.name]),
     {ok, spawned, Service}.
 
+spawned(start, State) ->
+    log:log("[~p] Starting Service: ~p", [?MODULE, State#service.name]),
+    {next_state, spawned, State};
 spawned(_Event, State) ->
     {next_state, spawned, State}.
 

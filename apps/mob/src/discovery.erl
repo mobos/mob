@@ -3,6 +3,7 @@
 -export([merge_nodes/2]).
 -export([find_available_node/2]).
 -export([announce_nodes/2]).
+-export([where_deployed/2]).
 
 -include("service.hrl").
 
@@ -24,6 +25,13 @@ find_available_node(Peer, _Service) ->
 
 announce_nodes(Peer, UpdatedNodes) ->
     peer:iterative_store(Peer, {?NODES_KEY, UpdatedNodes}).
+
+where_deployed(Peer, Service) ->
+    ServiceName = Service#service.name,
+    case peer:iterative_find_value(Peer, ServiceName) of
+        {found, Node} -> {found, Node};
+        _ -> {error, not_found}
+    end.
 
 -ifdef(TEST).
 -compile([export_all]).
