@@ -1,7 +1,21 @@
 -module(service).
+
+-behaviour(gen_fsm).
+
+-export([spawn/1]).
 -export([parse/1]).
 
+-export([init/1,
+         spawned/2,
+         handle_event/3,
+         handle_sync_event/4,
+         handle_info/3,
+         terminate/3,
+         code_change/4]).
+
 -include("service.hrl").
+
+-record(state, {}).
 
 parse(Service) ->
     BinaryService = list_to_binary(Service),
@@ -19,6 +33,34 @@ json_to_service(BinaryService) ->
        name = binary_to_list(BinaryName),
        command = binary_to_list(BinaryCommand)
     }.
+
+spawn(Service = {name = ServiceName}) ->
+        gen_fsm:start({local, ServiceName}, ?MODULE, [Service], []).
+
+%% gen_fsm callbacks
+
+init([]) ->
+        {ok, spawned, #state{}}.
+
+spawned(_Event, State) ->
+        {next_state, spawned, State}.
+
+handle_event(_Event, StateName, State) ->
+        {next_state, StateName, State}.
+
+handle_sync_event(_Event, _From, StateName, State) ->
+        Reply = ok,
+        {reply, Reply, StateName, State}.
+
+handle_info(_Info, StateName, State) ->
+        {next_state, StateName, State}.
+
+terminate(_Reason, _StateName, _State) ->
+        ok.
+
+code_change(_OldVsn, StateName, State, _Extra) ->
+        {ok, StateName, State}.
+
 
 -ifdef(TEST).
 -compile([export_all]).
