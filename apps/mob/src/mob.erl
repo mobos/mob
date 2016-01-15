@@ -68,7 +68,7 @@ handle_call(_Request, _From, State) ->
     {reply, Reply, State}.
 
 handle_cast({run, Service}, State) ->
-    log:log("Hi!! I'm selected to run ~p", [Service]),
+    handle_run(Service, State),
     {noreply, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.
@@ -101,6 +101,9 @@ handle_deploy(Service, State) ->
                 {error, Error} -> Error
             end,
     {Reply, State}.
+
+handle_run(Service, _State) ->
+    service_supervisor:run(Service).
 
 do_deploy(ParsedService, #state{peer = Peer}) ->
     case discovery:find_available_node(Peer, ParsedService) of
