@@ -6,7 +6,9 @@
 -export([announce_spawned_service/3]).
 -export([where_deployed/2]).
 
--include("service.hrl").
+%% XXX discovery should doesn't know service
+%% details
+-include("service_supervisor/service.hrl").
 
 -define(NODES_KEY, nodes).
 

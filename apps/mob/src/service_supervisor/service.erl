@@ -45,11 +45,12 @@ init([Service]) ->
     log:log("[~p] Spawned Service: ~p", [?MODULE, Service#service.name]),
     {ok, spawned, Service}.
 
-spawned(start, State) ->
-    log:log("[~p] Starting Service: ~p", [?MODULE, State#service.name]),
-    {next_state, spawned, State};
-spawned(_Event, State) ->
-    {next_state, spawned, State}.
+spawned(start, Service = #service{command = Command}) ->
+    log:log("[~p] Starting Service: ~p", [?MODULE, Service#service.name]),
+    % process:exec(Command),
+    {next_state, spawned, Service};
+spawned(_Event, Service) ->
+    {next_state, spawned, Service}.
 
 handle_event(_Event, StateName, State) ->
     {next_state, StateName, State}.
@@ -70,5 +71,5 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 
 -ifdef(TEST).
 -compile([export_all]).
--include_lib("../test/service.hrl").
+-include_lib("../../test/service.hrl").
 -endif.

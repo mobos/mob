@@ -182,5 +182,5 @@ hash_key(Key) ->
     NumberKey.
 
 -ifdef(TEST).
--include_lib("../test/peer.hrl").
+-include_lib("../../test/peer.hrl").
 -endif.

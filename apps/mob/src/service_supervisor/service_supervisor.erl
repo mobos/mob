@@ -68,5 +68,5 @@ is_spawned(ServiceName, #state{spawned = Spawned}) ->
 
 -ifdef(TEST).
 -compile([export_all]).
--include_lib("../test/service_supervisor.hrl").
+-include_lib("../../test/service_supervisor.hrl").
 -endif.
