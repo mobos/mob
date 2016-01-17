@@ -54,9 +54,10 @@ init([Service]) ->
     {ok, spawned, #state{service = Service}}.
 
 spawned(start, State = {service = Service}) ->
-    log:log("[~p] Starting Service: ~p", [?MODULE, Service#service.name]),
-    {NextState, NewState} = handle_start(Service, State),
-    {next_state, NextState, NewState};
+    {started, NewState} = handle_start(Service, State),
+    OSPid = NewState#state.ospid,
+    log:log("[~p] Started '~p' with PID ~p", [?MODULE, Service#service.name, OSPid]),
+    {next_state, started, NewState};
 spawned(_Event, State) ->
     {next_state, spawned, State}.
 
