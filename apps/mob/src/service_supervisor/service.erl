@@ -4,9 +4,11 @@
 
 -export([spawn/1]).
 -export([start/1]).
+-export([terminate/1]).
 -export([parse/1]).
 
 -export([init/1,
+     started/2,
      spawned/2,
      handle_event/3,
      handle_sync_event/4,
@@ -15,6 +17,8 @@
      code_change/4]).
 
 -include("service.hrl").
+
+-record(state, {service, ospid, exec_pid}).
 
 parse(Service) ->
     BinaryService = list_to_binary(Service),
@@ -39,19 +43,28 @@ spawn(Service = #service{name = ServiceName}) ->
 start(ServiceName) ->
     gen_fsm:send_event(ServiceName, start).
 
+terminate(ServiceName) ->
+    gen_fsm:send_all_state_event(ServiceName, terminate).
+
 %% gen_fsm callbacks
 
 init([Service]) ->
+    process_flag(trap_exit, true),
     log:log("[~p] Spawned Service: ~p", [?MODULE, Service#service.name]),
-    {ok, spawned, Service}.
+    {ok, spawned, #state{service = Service}}.
 
-spawned(start, Service = #service{command = Command}) ->
+spawned(start, State = {service = Service}) ->
     log:log("[~p] Starting Service: ~p", [?MODULE, Service#service.name]),
-    % process:exec(Command),
-    {next_state, spawned, Service};
-spawned(_Event, Service) ->
-    {next_state, spawned, Service}.
+    {NextState, NewState} = handle_start(Service, State),
+    {next_state, NextState, NewState};
+spawned(_Event, State) ->
+    {next_state, spawned, State}.
 
+started(_Event, State) ->
+    {next_state, started, State}.
+
+handle_event(terminate, _StateName, S) ->
+    {stop, normal, S};
 handle_event(_Event, StateName, State) ->
     {next_state, StateName, State}.
 
@@ -68,6 +81,11 @@ terminate(_Reason, _StateName, _State) ->
 code_change(_OldVsn, StateName, State, _Extra) ->
     {ok, StateName, State}.
 
+%% Handlers
+
+handle_start(#service{command = Command}, State) ->
+    {Pid, OSPid} = process:exec("bash -c \"" ++ Command ++ "\""),
+    {started, State#state{ospid = OSPid, exec_pid = Pid}}.
 
 -ifdef(TEST).
 -compile([export_all]).
