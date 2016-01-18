@@ -1,20 +1,23 @@
 -include_lib("eunit/include/eunit.hrl").
 
+-define(FAKE_OSPID, self()).
+-define(FAKE_EXECPID, self()).
 -define(SIGTERM, 15).
 
-should_parse_a_service_test() ->
-    Name = my_service,
-    Command = "a command",
+-define(SERVICE_NAME, my_service).
+-define(SERVICE_COMMAND, "my command").
+-define(SIMPLE_SERVICE, #service{name = ?SERVICE_NAME, command = ?SERVICE_COMMAND}).
 
+should_parse_a_service_test() ->
     Service = "{
-                 \"name\": \"my_service\",
-                 \"command\": \"a command\"
+                 \"name\": \""++ atom_to_list(?SERVICE_NAME) ++"\",
+                 \"command\": \""++ ?SERVICE_COMMAND ++"\"
                }",
 
     {ok, ParsedService} = service:parse(Service),
 
-    ?assertEqual(Name, ParsedService#service.name),
-    ?assertEqual(Command, ParsedService#service.command).
+    ?assertEqual(?SERVICE_NAME, ParsedService#service.name),
+    ?assertEqual(?SERVICE_COMMAND, ParsedService#service.command).
 
 should_fail_if_the_format_isnt_json_test() ->
     Service = "{ not_valid_json",
@@ -24,35 +27,31 @@ should_fail_if_the_format_isnt_json_test() ->
     ?assertEqual(Error, format_error).
 
 should_spawn_a_service_registering_its_name_test() ->
-    Service = #service{name = my_service, command = "a command"},
-
-    {ok, ServicePid} = service:spawn(Service),
+    {ok, ServicePid} = service:spawn(?SIMPLE_SERVICE),
     service:terminate(ServicePid),
 
-    ?assert(lists:member(Service#service.name, erlang:registered())).
+    ?assert(lists:member(?SERVICE_NAME, erlang:registered())).
 
 start_a_service_exec_its_command_in_a_bash_shell_test() ->
     meck:new(process, [non_strict]),
-    FakeOsPid = FakeExecPid = self(),
-    meck:expect(process, exec, fun(_Command) -> {FakeOsPid, FakeExecPid} end),
+    meck:expect(process, exec, fun(_Command) -> {?FAKE_OSPID, ?FAKE_EXECPID} end),
 
-    Service = #service{name = my_service, command = "my_command"},
-    {started, NewState} = service:handle_start(Service, #state{service = Service}),
+    State = #state{service = ?SIMPLE_SERVICE},
+    {NextState, NewState} = service:handle_start(?SIMPLE_SERVICE, State),
 
-    ?assertEqual(1, meck:num_calls(process, exec, ["bash -c \"" ++ Service#service.command ++ "\""])),
-    ?assertEqual(FakeOsPid, NewState#state.ospid),
-    ?assertEqual(FakeExecPid, NewState#state.exec_pid),
-
+    ?assertEqual(1, meck:num_calls(process, exec, ["bash -c \"" ++ ?SERVICE_COMMAND ++ "\""])),
+    ?assertEqual(started, NextState),
+    ?assertEqual(?FAKE_OSPID, NewState#state.ospid),
+    ?assertEqual(?FAKE_EXECPID, NewState#state.exec_pid),
     ?assert(meck:validate(process)),
+
     meck:unload(process).
 
 when_a_started_service_goes_down_become_stopped_test() ->
-    Service = #service{name = my_service, command = "my_command"},
 
-    FakeOsPid = FakeExecPid = self(),
     ExitInfo = {exit_status, ?SIGTERM},
-    State = #state{service = Service, ospid = FakeOsPid, exec_pid = FakeExecPid},
+    State = #state{service = ?SIMPLE_SERVICE, ospid = ?FAKE_OSPID, exec_pid = ?FAKE_EXECPID},
     {NextState, CleanedState} = service:handle_down(ExitInfo, State),
 
     ?assertEqual(stopped, NextState),
-    ?assertEqual(#state{service = Service}, CleanedState).
+    ?assertEqual(#state{service = ?SIMPLE_SERVICE}, CleanedState).
