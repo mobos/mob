@@ -11,7 +11,8 @@
     lager,
     meck,
     crypto,
-    lager_logstash
+    lager_logstash,
+    erlexec
    ]},
   {env,[]},
   {modules, []},

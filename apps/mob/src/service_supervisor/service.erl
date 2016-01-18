@@ -53,11 +53,10 @@ init([Service]) ->
     log:log("[~p] Spawned Service: ~p", [?MODULE, Service#service.name]),
     {ok, spawned, #state{service = Service}}.
 
-spawned(start, State = {service = Service}) ->
-    {started, NewState} = handle_start(Service, State),
-    OSPid = NewState#state.ospid,
-    log:log("[~p] Started '~p' with PID ~p", [?MODULE, Service#service.name, OSPid]),
-    {next_state, started, NewState};
+spawned(start, State = #state{service = Service}) ->
+    {NextState, NewState} = handle_start(Service, State),
+    log:log("[~p] Started '~p' with PID ~p", [?MODULE, Service#service.name, NewState#state.ospid]),
+    {next_state, NextState, NewState};
 spawned(_Event, State) ->
     {next_state, spawned, State}.
 
@@ -73,6 +72,11 @@ handle_sync_event(_Event, _From, StateName, State) ->
     Reply = ok,
     {reply, Reply, StateName, State}.
 
+handle_info({'DOWN', _, process, FromExecPid, ExitInfo}, _, State = #state{exec_pid = ExecPid})
+      when FromExecPid =:= ExecPid ->
+    {NextState, NewState} = handle_down(ExitInfo, State),
+    {next_state, NextState, NewState};
+
 handle_info(_Info, StateName, State) ->
     {next_state, StateName, State}.
 
@@ -87,6 +91,13 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 handle_start(#service{command = Command}, State) ->
     {Pid, OSPid} = process:exec("bash -c \"" ++ Command ++ "\""),
     {started, State#state{ospid = OSPid, exec_pid = Pid}}.
+
+handle_down(ExitInfo, #state{service = Service}) ->
+    {exit_status, ExitStatus} = ExitInfo,
+    CleanedState = #state{service = Service},
+
+    log:log("[~p] ~p exited with exit-status ~p", [?MODULE, Service#service.name, ExitStatus]),
+    {spawned, CleanedState}.
 
 -ifdef(TEST).
 -compile([export_all]).
