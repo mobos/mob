@@ -15,4 +15,4 @@ peer(Node) ->
     gen_server:call({mob, Node}, peer).
 
 is_started(Node, Service) ->
-    gen_server:call({mov, Node}, {is_started, Service}).
+    gen_server:call({mob, Node}, {is_started, Service}).
