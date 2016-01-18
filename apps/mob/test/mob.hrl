@@ -92,11 +92,14 @@ should_ask_if_a_service_is_remotely_started_test() ->
 should_known_if_a_service_is_locally_started_test() ->
     start_mocks([service_supervisor]),
     meck:expect(service_supervisor, is_started, fun(_ServiceName) -> true end),
+    FakePeer = self(),
 
+    State = #state{peer = FakePeer},
     ServiceName = my_service,
-    Ret = mob:is_started(ServiceName),
+    {Ret, NewState} = mob:handle_is_started(ServiceName, State),
 
     ?assertEqual(1, meck:num_calls(service_supervisor, is_started, [ServiceName])),
+    ?assertEqual(State, NewState),
     ?assert(Ret),
     stop_mocks([service_supervisor]).
 

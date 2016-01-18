@@ -70,8 +70,8 @@ handle_call({deploy, Service}, _From, State) ->
     {reply, Reply, NewState};
 
 handle_call({is_started, ServiceName}, _From, State) ->
-    Reply = service_supervisor:is_started(ServiceName),
-    {reply, Reply, State};
+    {Reply, NewState} = handle_is_started(ServiceName, State),
+    {reply, Reply, NewState};
 
 handle_call({is_remotely_started, Service}, _From, State) ->
     {Reply, NewState} = handle_is_remotely_started(Service, State),
@@ -97,6 +97,7 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 % Handlers
+
 handle_join(NodeName, State = #state{peer = Peer}) ->
     ConnectionResult = remote_mob:connect(NodeName),
     BootstrapPeer = remote_mob:peer(NodeName),
@@ -124,6 +125,10 @@ handle_run(Service, State = #state{peer = Peer}) ->
     discovery:announce_spawned_service(Peer, Service, node_name()),
     service_supervisor:run(Service),
     State.
+
+handle_is_started(ServiceName, State) ->
+    Reply = service_supervisor:is_started(ServiceName),
+    {Reply, State}.
 
 handle_is_remotely_started(ServiceName, State = #state{peer = Peer}) ->
     Ret = case discovery:where_deployed(Peer, ServiceName) of
