@@ -9,7 +9,7 @@
 
 -export([init/1,
      started/2,
-     spawned/2,
+     stopped/2,
      handle_event/3,
      handle_sync_event/4,
      handle_info/3,
@@ -51,14 +51,14 @@ terminate(ServiceName) ->
 init([Service]) ->
     process_flag(trap_exit, true),
     log:log("[~p] Spawned Service: ~p", [?MODULE, Service#service.name]),
-    {ok, spawned, #state{service = Service}}.
+    {ok, stopped, #state{service = Service}}.
 
-spawned(start, State = #state{service = Service}) ->
+stopped(start, State = #state{service = Service}) ->
     {NextState, NewState} = handle_start(Service, State),
     log:log("[~p] Started '~p' with PID ~p", [?MODULE, Service#service.name, NewState#state.ospid]),
     {next_state, NextState, NewState};
-spawned(_Event, State) ->
-    {next_state, spawned, State}.
+stopped(_Event, State) ->
+    {next_state, stopped, State}.
 
 started(_Event, State) ->
     {next_state, started, State}.
@@ -68,6 +68,9 @@ handle_event(terminate, _StateName, S) ->
 handle_event(_Event, StateName, State) ->
     {next_state, StateName, State}.
 
+handle_sync_event(get_state, _From, StateName, State) ->
+    Reply = StateName,
+    {reply, Reply, StateName, State};
 handle_sync_event(_Event, _From, StateName, State) ->
     Reply = ok,
     {reply, Reply, StateName, State}.
@@ -97,7 +100,7 @@ handle_down(ExitInfo, #state{service = Service}) ->
     CleanedState = #state{service = Service},
 
     log:log("[~p] ~p exited with exit-status ~p", [?MODULE, Service#service.name, ExitStatus]),
-    {spawned, CleanedState}.
+    {stopped, CleanedState}.
 
 -ifdef(TEST).
 -compile([export_all]).
