@@ -32,10 +32,19 @@ json_to_service(BinaryService) ->
     {<<"name">>, BinaryName} = lists:keyfind(<<"name">>, 1, ParsedService),
     {<<"command">>, BinaryCommand} = lists:keyfind(<<"command">>, 1, ParsedService),
 
-    #service{
+    BinaryRequires = get_or_default(<<"requires">>, [], ParsedService),
+
+    #service {
        name = binary_to_atom(BinaryName, utf8),
-       command = binary_to_list(BinaryCommand)
+       command = binary_to_list(BinaryCommand),
+       requires = [binary_to_atom(Dependency, utf8) || Dependency <- BinaryRequires]
     }.
+
+get_or_default(Key, Default, ParsedService) ->
+    case lists:keyfind(Key, 1, ParsedService) of
+        {Key, Value} -> Value;
+        _ -> Default
+    end.
 
 spawn(Service = #service{name = ServiceName}) ->
     gen_fsm:start({local, ServiceName}, ?MODULE, [Service], []).
