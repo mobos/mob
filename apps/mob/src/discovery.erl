@@ -33,8 +33,7 @@ announce_spawned_service(Peer, Service, OwningNode) ->
     ServiceName = Service#service.name,
     peer:iterative_store(Peer, {ServiceName, OwningNode}).
 
-where_deployed(Peer, Service) ->
-    ServiceName = Service#service.name,
+where_deployed(Peer, ServiceName) ->
     case peer:iterative_find_value(Peer, ServiceName) of
         {found, Node} -> {found, Node};
         _ -> {error, not_found}

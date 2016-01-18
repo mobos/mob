@@ -10,9 +10,9 @@ should_find_the_correct_node_and_deploy_a_service_test() ->
 
     FakePeer = self(),
     FakeNode = fake_node,
-    FakeParsedService = parsed_service,
+    ParsedService = #service{name = 'my_service', command = "a command"},
 
-    meck:expect(service_parser, parse, fun(_) -> {ok, FakeParsedService} end),
+    meck:expect(service_parser, parse, fun(_) -> {ok, ParsedService} end),
     meck:expect(discovery, where_deployed, fun(_, _) -> {error, not_found} end),
     meck:expect(discovery, find_available_node, fun(_, _) -> {ok, FakeNode} end),
     meck:expect(remote_mob, run, fun(_, _) -> ok end),
@@ -22,9 +22,9 @@ should_find_the_correct_node_and_deploy_a_service_test() ->
     {Reply, NewState} = mob:handle_deploy(Service, State),
 
     ?assertEqual(1, meck:num_calls(service_parser, parse, [Service])),
-    ?assertEqual(1, meck:num_calls(discovery, where_deployed, [FakePeer, FakeParsedService])),
-    ?assertEqual(1, meck:num_calls(discovery, find_available_node, [FakePeer, FakeParsedService])),
-    ?assertEqual(1, meck:num_calls(remote_mob, run, [FakeNode, FakeParsedService])),
+    ?assertEqual(1, meck:num_calls(discovery, where_deployed, [FakePeer, ParsedService#service.name])),
+    ?assertEqual(1, meck:num_calls(discovery, find_available_node, [FakePeer, ParsedService])),
+    ?assertEqual(1, meck:num_calls(remote_mob, run, [FakeNode, ParsedService])),
     ?assertEqual(State, NewState),
     ?assertEqual(FakeNode, Reply),
 
@@ -41,16 +41,16 @@ should_not_deploy_an_already_deployed_service_test() ->
 
     FakePeer = self(),
     FakeNode = fake_node,
-    FakeParsedService = parsed_service,
+    ParsedService = #service{name = 'my_service', command = "a command"},
 
-    meck:expect(service_parser, parse, fun(_) -> {ok, FakeParsedService} end),
+    meck:expect(service_parser, parse, fun(_) -> {ok, ParsedService} end),
     meck:expect(discovery, where_deployed, fun(_, _) -> {found, FakeNode} end),
 
     State = #state{peer = FakePeer},
     {Reply, NewState} = mob:handle_deploy(Service, State),
 
     ?assertEqual(1, meck:num_calls(service_parser, parse, [Service])),
-    ?assertEqual(1, meck:num_calls(discovery, where_deployed, [FakePeer, FakeParsedService])),
+    ?assertEqual(1, meck:num_calls(discovery, where_deployed, [FakePeer, ParsedService#service.name])),
     ?assertEqual(State, NewState),
     ?assertEqual('already_deployed', Reply),
 

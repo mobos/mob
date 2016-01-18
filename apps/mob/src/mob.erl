@@ -19,6 +19,8 @@
      terminate/2,
      code_change/3]).
 
+-include("service_supervisor/service.hrl").
+
 -record(state, {peer}).
 
 start_link() ->
@@ -131,7 +133,7 @@ handle_is_remotely_started(ServiceName, State = #state{peer = Peer}) ->
     {Ret, State}.
 
 do_deploy(ParsedService, #state{peer = Peer}) ->
-    case discovery:where_deployed(Peer, ParsedService) of
+    case discovery:where_deployed(Peer, ParsedService#service.name) of
         {error, not_found} ->
             case discovery:find_available_node(Peer, ParsedService) of
                 {ok, Node} ->
