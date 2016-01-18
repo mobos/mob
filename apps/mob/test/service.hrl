@@ -9,36 +9,6 @@
 -define(SERVICE_REQUIRES, [first_dependency, second_dependency]).
 -define(SIMPLE_SERVICE, #service{name = ?SERVICE_NAME, command = ?SERVICE_COMMAND}).
 
-should_parse_a_service_test() ->
-    Service = "{
-                 \"name\": \""++ atom_to_list(?SERVICE_NAME) ++"\",
-                 \"command\": \""++ ?SERVICE_COMMAND ++"\"
-               }",
-
-    {ok, ParsedService} = service:parse(Service),
-
-    ?assertEqual(?SERVICE_NAME, ParsedService#service.name),
-    ?assertEqual(?SERVICE_COMMAND, ParsedService#service.command).
-
-should_parse_a_service_with_dependencies_test() ->
-    Service = "{
-                \"name\": \"" ++ atom_to_list(?SERVICE_NAME) ++ "\",
-                \"command\": \"" ++ ?SERVICE_COMMAND ++ "\",
-                \"requires\": [\"first_dependency\", \"second_dependency\"]
-               }",
-    {ok, ParsedService} = service:parse(Service),
-
-    ?assertEqual(?SERVICE_NAME, ParsedService#service.name),
-    ?assertEqual(?SERVICE_COMMAND, ParsedService#service.command),
-    ?assertEqual(?SERVICE_REQUIRES, ParsedService#service.requires).
-
-should_fail_if_the_format_isnt_json_test() ->
-    Service = "{ not_valid_json",
-
-    {error, Error} = service:parse(Service),
-
-    ?assertEqual(Error, format_error).
-
 should_spawn_a_service_registering_its_name_test() ->
     {ok, ServicePid} = service:spawn(?SIMPLE_SERVICE),
     service:terminate(ServicePid),

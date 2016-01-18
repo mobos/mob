@@ -96,7 +96,7 @@ handle_join(NodeName, State = #state{peer = Peer}) ->
     {ConnectionResult, State}.
 
 handle_deploy(Service, State) ->
-    Reply = case service:parse(Service) of
+    Reply = case service_parser:parse(Service) of
                 {ok, ParsedService} -> do_deploy(ParsedService, State);
                 {error, Error} -> Error
             end,

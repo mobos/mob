@@ -5,7 +5,6 @@
 -export([spawn/1]).
 -export([start/1]).
 -export([terminate/1]).
--export([parse/1]).
 
 -export([init/1,
      started/2,
@@ -19,32 +18,6 @@
 -include("service.hrl").
 
 -record(state, {service, os_pid, exec_pid}).
-
-parse(Service) ->
-    BinaryService = list_to_binary(Service),
-    case jsx:is_json(BinaryService) of
-    false -> {error, format_error};
-    true ->  {ok, json_to_service(BinaryService)}
-    end.
-
-json_to_service(BinaryService) ->
-    ParsedService = jsx:decode(BinaryService),
-    {<<"name">>, BinaryName} = lists:keyfind(<<"name">>, 1, ParsedService),
-    {<<"command">>, BinaryCommand} = lists:keyfind(<<"command">>, 1, ParsedService),
-
-    BinaryRequires = get_or_default(<<"requires">>, [], ParsedService),
-
-    #service {
-       name = binary_to_atom(BinaryName, utf8),
-       command = binary_to_list(BinaryCommand),
-       requires = [binary_to_atom(Dependency, utf8) || Dependency <- BinaryRequires]
-    }.
-
-get_or_default(Key, Default, ParsedService) ->
-    case lists:keyfind(Key, 1, ParsedService) of
-        {Key, Value} -> Value;
-        _ -> Default
-    end.
 
 spawn(Service = #service{name = ServiceName}) ->
     gen_fsm:start({local, ServiceName}, ?MODULE, [Service], []).
