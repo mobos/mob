@@ -7,7 +7,6 @@
 -export([join/1]).
 -export([run/1]).
 -export([deploy/1]).
--export([is_started/1]).
 -export([is_remotely_started/1]).
 -export([node_name/0]).
 
@@ -37,9 +36,6 @@ join(NodeName) ->
 
 node_name() ->
     node().
-
-is_started(ServiceName) ->
-    service_supervisor:is_started(ServiceName).
 
 is_remotely_started(ServiceName) ->
     gen_server:call(mob, {is_remotely_started, ServiceName}).
@@ -72,6 +68,10 @@ handle_call({join, NodeName}, _From, State) ->
 handle_call({deploy, Service}, _From, State) ->
     {Reply, NewState} = handle_deploy(Service, State),
     {reply, Reply, NewState};
+
+handle_call({is_started, ServiceName}, _From, State) ->
+    Reply = service_supervisor:is_started(ServiceName),
+    {reply, Reply, State};
 
 handle_call({is_remotely_started, Service}, _From, State) ->
     {Reply, NewState} = handle_is_remotely_started(Service, State),
