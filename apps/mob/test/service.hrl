@@ -41,7 +41,7 @@ start_a_service_exec_its_command_in_a_bash_shell_test() ->
 
     ?assertEqual(1, meck:num_calls(process, exec, ["bash -c \"" ++ ?SERVICE_COMMAND ++ "\""])),
     ?assertEqual(started, NextState),
-    ?assertEqual(?FAKE_OSPID, NewState#state.ospid),
+    ?assertEqual(?FAKE_OSPID, NewState#state.os_pid),
     ?assertEqual(?FAKE_EXECPID, NewState#state.exec_pid),
     ?assert(meck:validate(process)),
 
@@ -50,7 +50,7 @@ start_a_service_exec_its_command_in_a_bash_shell_test() ->
 when_a_started_service_goes_down_become_stopped_test() ->
 
     ExitInfo = {exit_status, ?SIGTERM},
-    State = #state{service = ?SIMPLE_SERVICE, ospid = ?FAKE_OSPID, exec_pid = ?FAKE_EXECPID},
+    State = #state{service = ?SIMPLE_SERVICE, os_pid = ?FAKE_OSPID, exec_pid = ?FAKE_EXECPID},
     {NextState, CleanedState} = service:handle_down(ExitInfo, State),
 
     ?assertEqual(stopped, NextState),

@@ -18,7 +18,7 @@
 
 -include("service.hrl").
 
--record(state, {service, ospid, exec_pid}).
+-record(state, {service, os_pid, exec_pid}).
 
 parse(Service) ->
     BinaryService = list_to_binary(Service),
@@ -55,7 +55,7 @@ init([Service]) ->
 
 stopped(start, State = #state{service = Service}) ->
     {NextState, NewState} = handle_start(Service, State),
-    log:log("[~p] Started '~p' with PID ~p", [?MODULE, Service#service.name, NewState#state.ospid]),
+    log:log("[~p] Started '~p' with PID ~p", [?MODULE, Service#service.name, NewState#state.os_pid]),
     {next_state, NextState, NewState};
 stopped(_Event, State) ->
     {next_state, stopped, State}.
@@ -93,7 +93,7 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 
 handle_start(#service{command = Command}, State) ->
     {Pid, OSPid} = process:exec("bash -c \"" ++ Command ++ "\""),
-    {started, State#state{ospid = OSPid, exec_pid = Pid}}.
+    {started, State#state{os_pid = OSPid, exec_pid = Pid}}.
 
 handle_down(ExitInfo, #state{service = Service}) ->
     {exit_status, ExitStatus} = ExitInfo,
