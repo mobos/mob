@@ -23,7 +23,7 @@ start_link() ->
         gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 run(Service) ->
-    log:log("[~p] Run Service: ~p", [?MODULE, Service#service.name]),
+    log:notice("[~p] Run Service: ~p", [?MODULE, Service#service.name]),
     gen_server:cast(?SERVER, {run, Service}).
 
 is_started(ServiceName) ->

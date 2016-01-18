@@ -39,12 +39,12 @@ get_state(ServiceName) ->
 
 init([Service]) ->
     process_flag(trap_exit, true),
-    log:log("[~p] Spawned Service: ~p", [?MODULE, Service#service.name]),
+    log:notice("[~p] Spawned Service: ~p", [?MODULE, Service#service.name]),
     {ok, stopped, #state{service = Service}}.
 
 stopped(start, State = #state{service = Service}) ->
     {NextState, NewState} = handle_start(Service, State),
-    log:log("[~p] Started '~p' with PID ~p", [?MODULE, Service#service.name, NewState#state.os_pid]),
+    log:notice("[~p] Started '~p' with PID ~p", [?MODULE, Service#service.name, NewState#state.os_pid]),
     {next_state, NextState, NewState};
 stopped(_Event, State) ->
     {next_state, stopped, State}.
@@ -88,7 +88,7 @@ handle_down(ExitInfo, #state{service = Service}) ->
     {exit_status, ExitStatus} = ExitInfo,
     CleanedState = #state{service = Service},
 
-    log:log("[~p] ~p exited with exit-status ~p", [?MODULE, Service#service.name, ExitStatus]),
+    log:notice("[~p] ~p exited with exit-status ~p", [?MODULE, Service#service.name, ExitStatus]),
     {stopped, CleanedState}.
 
 -ifdef(TEST).

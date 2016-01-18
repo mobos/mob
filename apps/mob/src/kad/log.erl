@@ -3,7 +3,8 @@
 -export([kbucket/3, kbucket/4]).
 -export([pid_to_field/2]).
 -export([contact_to_field/2]).
--export([log/3, log/2]).
+-export([info/3, info/2]).
+-export([notice/2]).
 
 -include("peer.hrl").
 -record(kbucket, {peer, k, contacts, keylength}).
@@ -16,12 +17,15 @@ peer(Peer, Fields, Message, Args) ->
                   {repository, pid_to_list(Repository)},
                   {id, Id},
                   {module, peer}],
-    log(PeerFields ++ Fields, Message, Args).
+    info(PeerFields ++ Fields, Message, Args).
 
-log(Message, Args) ->
-    log([], Message, Args).
-log(Fields, Message, Args) ->
+info(Message, Args) ->
+    info([], Message, Args).
+info(Fields, Message, Args) ->
     lager:info(Fields, Message, Args).
+
+notice(Message, Args) ->
+    lager:notice([], Message, Args).
 
 kbucket(Kbucket, Fields, Message) ->
     kbucket(Kbucket, Fields, Message, []).
@@ -31,7 +35,7 @@ kbucket(Kbucket, Fields, Message, Args) ->
                      {k, K},
                      {keylength, Keylength},
                      {module, kbucket}],
-    log(KbucketFields ++ Fields, Message, Args).
+    info(KbucketFields ++ Fields, Message, Args).
 
 pid_to_field(Pid, Prefix) ->
     Field = list_to_atom(Prefix ++ "_pid"),

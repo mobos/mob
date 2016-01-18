@@ -15,7 +15,7 @@ init_server(Args) ->
     {ok, ListenSock} = gen_tcp:listen(Options#tcp_options.port, [binary, {packet, 0},
                                                                          {active, false}]),
 
-    log:log("[~s] Listen to port ~p", [?MODULE, Options#tcp_options.port]),
+    log:notice("[~s] Listen to port ~p", [?MODULE, Options#tcp_options.port]),
     spawn(fun() -> acceptor(ListenSock) end),
     timer:sleep(infinity).
 
@@ -28,12 +28,12 @@ listener(Socket) ->
     inet:setopts(Socket, [{active, once}]),
     receive
         {tcp, Socket, Msg} ->
-            log:log("[~p] Received: ~p", [?MODULE, Msg]),
+            log:notice("[~p] Received: ~p", [?MODULE, Msg]),
             case command:exec_command_line(binary_to_list(Msg)) of
                 {error, E} ->
-                    log:log("[~p] Error during exec: ~p ", [?MODULE, E]);
+                    log:notice("[~p] Error during exec: ~p ", [?MODULE, E]);
                 {ok, Response} ->
-                    log:log("[~p] Sending Response: ~p", [?MODULE, Response]),
+                    log:notice("[~p] Sending Response: ~p", [?MODULE, Response]),
                     gen_tcp:send(Socket, Response)
             end
     end.

@@ -43,7 +43,7 @@ handle_event({find_value, From, FromContact, [Key]}, Peer) ->
     {ok, Peer};
 
 handle_event(Event, Peer) ->
-    log:log([], "UNMATCHED EVENT: ~p", [Event]),
+    log:info([], "UNMATCHED EVENT: ~p", [Event]),
 	{ok, Peer}.
 
 handle_call(_Request, Peer) -> Reply = Peer, {ok, Reply, Peer}.
