@@ -58,20 +58,24 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% Handlers
 
-handle_run(Service, State = #state{spawned = Spawned}) ->
-    ServiceName = Service#service.name,
-    Dependencies = Service#service.requires,
+handle_run(Service, State) ->
+    NewState = spawn_service(Service, State),
+    start_service(Service, NewState),
+    NewState.
 
-    NewState = case is_spawned(ServiceName, State) of
+spawn_service(Service, State = #state{spawned = Spawned}) ->
+    ServiceName = Service#service.name,
+    case is_spawned(ServiceName, State) of
         false -> service:spawn(Service),
                  State#state{spawned = [ServiceName | Spawned]};
         true -> State
-    end,
-    case are_started(Dependencies, NewState) of
+    end.
+
+start_service(#service{name = ServiceName, requires = Dependencies}, State) ->
+    case are_started(Dependencies, State) of
         true -> service:start(ServiceName);
         false -> log:notice("[~p] Dependencies for '~p' are not started", [?MODULE, ServiceName])
-    end,
-    NewState.
+    end.
 
 handle_is_started(ServiceName, State) ->
     Reply = is_locally_started(ServiceName, State),
