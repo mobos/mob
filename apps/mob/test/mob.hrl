@@ -72,6 +72,34 @@ should_reply_with_an_error_message_if_the_service_isnt_correct_test() ->
 
     stop_mocks([service]).
 
+should_ask_if_a_service_is_remotely_started_test() ->
+    start_mocks([remote_mob, discovery]),
+    FakePeer = self(),
+    FakeNode = fake_node,
+
+    meck:expect(discovery, where_deployed, fun(_, _) -> {found, FakeNode} end),
+    meck:expect(remote_mob, is_started, fun(_, _) -> true end),
+
+    State = #state{peer = FakePeer},
+    ServiceName = my_service,
+    {Result, NewState} = mob:handle_is_remotely_started(ServiceName, State),
+
+    ?assertEqual(1, meck:num_calls(discovery, where_deployed, [FakePeer, ServiceName])),
+    ?assertEqual(1, meck:num_calls(remote_mob, is_started, [FakeNode, ServiceName])),
+    ?assert(Result),
+    stop_mocks([remote_mob, discovery]).
+
+should_known_if_a_service_is_locally_started_test() ->
+    start_mocks([service_supervisor]),
+    meck:expect(service_supervisor, is_started, fun(_ServiceName) -> true end),
+
+    ServiceName = my_service,
+    Ret = mob:is_started(ServiceName),
+
+    ?assertEqual(1, meck:num_calls(service_supervisor, is_started, [ServiceName])),
+    ?assert(Ret),
+    stop_mocks([service_supervisor]).
+
 start_mocks([]) -> ok;
 start_mocks([Mod | Modules]) ->
     meck:new(Mod, [non_strict]),

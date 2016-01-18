@@ -4,6 +4,7 @@
 
 -export([spawn/1]).
 -export([start/1]).
+-export([is_started/1]).
 -export([terminate/1]).
 
 -export([init/1,
@@ -25,8 +26,14 @@ spawn(Service = #service{name = ServiceName}) ->
 start(ServiceName) ->
     gen_fsm:send_event(ServiceName, start).
 
+is_started(ServiceName) ->
+    started =:= get_state(ServiceName).
+
 terminate(ServiceName) ->
     gen_fsm:send_all_state_event(ServiceName, terminate).
+
+get_state(ServiceName) ->
+    gen_fsm:sync_send_all_state_event(ServiceName, get_state).
 
 %% gen_fsm callbacks
 

@@ -3,6 +3,7 @@
 -behaviour(gen_server).
 
 -export([start_link/0]).
+-export([is_started/1]).
 -export([run/1]).
 
 -export([init/1,
@@ -25,11 +26,17 @@ run(Service) ->
     log:log("[~p] Run Service: ~p", [?MODULE, Service#service.name]),
     gen_server:cast(?SERVER, {run, Service}).
 
+is_started(ServiceName) ->
+    gen_server:call(?SERVER, {is_started, ServiceName}).
+
 %% Callbacks
 
 init([]) ->
         {ok, #state{spawned = []}}.
 
+handle_call({is_started, ServiceName}, _From, State) ->
+        {Reply, NewState} = handle_is_started(ServiceName, State),
+        {reply, Reply, NewState};
 handle_call(_Request, _From, State) ->
         Reply = ok,
         {reply, Reply, State}.
@@ -53,18 +60,40 @@ code_change(_OldVsn, State, _Extra) ->
 
 handle_run(Service, State = #state{spawned = Spawned}) ->
     ServiceName = Service#service.name,
-    case is_spawned(ServiceName, State) of
-        true ->
-            service:start(ServiceName),
-            State;
-        false ->
-            service:spawn(Service),
-            service:start(ServiceName),
-            State#state{spawned = [ServiceName | Spawned]}
-    end.
+    Dependencies = Service#service.requires,
+
+    NewState = case is_spawned(ServiceName, State) of
+        false -> service:spawn(Service),
+                 State#state{spawned = [ServiceName | Spawned]};
+        true -> State
+    end,
+    case are_started(Dependencies, State) of
+        true -> service:start(ServiceName);
+        false -> dependencies_not_started
+    end,
+    NewState.
+
+handle_is_started(ServiceName, State) ->
+    Reply = is_locally_started(ServiceName, State),
+    {Reply, State}.
 
 is_spawned(ServiceName, #state{spawned = Spawned}) ->
     lists:member(ServiceName, Spawned).
+
+are_started(Dependencies, State) ->
+    lists:all(fun(Service) -> is_globally_started(Service, State) end, Dependencies).
+
+is_globally_started(ServiceName, State) ->
+    case is_locally_started(ServiceName, State) of
+        true -> true;
+        false -> mob:is_remotely_started(ServiceName)
+    end.
+
+is_locally_started(ServiceName, State) ->
+    case is_spawned(ServiceName, State) of
+        true -> service:is_started(ServiceName);
+        _ -> false
+    end.
 
 -ifdef(TEST).
 -compile([export_all]).

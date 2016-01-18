@@ -7,6 +7,8 @@
 -export([join/1]).
 -export([run/1]).
 -export([deploy/1]).
+-export([is_started/1]).
+-export([is_remotely_started/1]).
 -export([node_name/0]).
 
 %% gen_server callbacks
@@ -33,6 +35,12 @@ join(NodeName) ->
 
 node_name() ->
     node().
+
+is_started(ServiceName) ->
+    service_supervisor:is_started(ServiceName).
+
+is_remotely_started(ServiceName) ->
+    gen_server:call(mob, {is_remotely_started, ServiceName}).
 
 %% Callbacks
 
@@ -61,6 +69,10 @@ handle_call({join, NodeName}, _From, State) ->
 
 handle_call({deploy, Service}, _From, State) ->
     {Reply, NewState} = handle_deploy(Service, State),
+    {reply, Reply, NewState};
+
+handle_call({is_remotely_started, Service}, _From, State) ->
+    {Reply, NewState} = handle_is_remotely_started(Service, State),
     {reply, Reply, NewState};
 
 handle_call(_Request, _From, State) ->
@@ -110,6 +122,13 @@ handle_run(Service, State = #state{peer = Peer}) ->
     discovery:announce_spawned_service(Peer, Service, node_name()),
     service_supervisor:run(Service),
     State.
+
+handle_is_remotely_started(ServiceName, State = #state{peer = Peer}) ->
+    Ret = case discovery:where_deployed(Peer, ServiceName) of
+        {found, Node} -> remote_mob:is_started(Node, ServiceName);
+        _ -> false
+    end,
+    {Ret, State}.
 
 do_deploy(ParsedService, #state{peer = Peer}) ->
     case discovery:where_deployed(Peer, ParsedService) of
