@@ -69,7 +69,7 @@ handle_run(Service, State = #state{spawned = Spawned}) ->
     end,
     case are_started(Dependencies, NewState) of
         true -> service:start(ServiceName);
-        false -> dependencies_not_started
+        false -> log:notice("[~p] Dependencies for '~p' are not started", [?MODULE, ServiceName])
     end,
     NewState.
 
@@ -81,9 +81,7 @@ is_spawned(ServiceName, #state{spawned = Spawned}) ->
     lists:member(ServiceName, Spawned).
 
 are_started(Dependencies, State) ->
-    lists:all(fun(Service) ->
-                      log:notice("[~p] Checking dependency ~p", [?MODULE, Service]),
-                      is_globally_started(Service, State) end, Dependencies).
+    lists:all(fun(Service) -> is_globally_started(Service, State) end, Dependencies).
 
 is_globally_started(ServiceName, State) ->
     case is_spawned(ServiceName, State) of

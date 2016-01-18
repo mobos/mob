@@ -122,6 +122,7 @@ handle_run(Service, State = #state{peer = Peer}) ->
     %% is really spawned. To be sure we should notify this module
     %% when the service is really spawned and proceed with the
     %% announce
+    log:notice("[~p] Run request for ~p", [?MODULE, Service#service.name]),
     discovery:announce_spawned_service(Peer, Service, node_name()),
     service_supervisor:run(Service),
     State.
