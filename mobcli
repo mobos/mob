@@ -4,9 +4,10 @@ OPTIND=1         # Reset in case getopts has been used previously in the shell.
 
 PORT=
 JOIN_ADDR=
+DEPLOY=
 NODE=
 
-while getopts "h?j:p:n" opt; do
+while getopts "h?j:p:n:d:" opt; do
     case "$opt" in
     h|\?)
         show_help
@@ -15,6 +16,8 @@ while getopts "h?j:p:n" opt; do
     p)  PORT=$OPTARG
         ;;
     j)  JOIN_ADDR=$OPTARG
+        ;;
+    d)  DEPLOY=$OPTARG
         ;;
     n)  NODE=1
         ;;
@@ -47,11 +50,21 @@ if [ ! -z "$JOIN_ADDR" ]; then
     echo "[i] joining with $JOIN_ADDR"
     ADDRESS=(${JOIN_ADDR//:/ })
     NODE=$(node_name ${ADDRESS[0]} ${ADDRESS[1]})
-    STATUS=$(send_command "--join $NODE" 127.0.0.1 $PORT)
-    echo "[i] response: $STATUS"
+    if [ -z "$NODE" ]; then
+        echo "[E] unable to contact $JOIN_ADDR"
+    else
+        echo "[i] resolved to name $NODE"
+        STATUS=$(send_command "--join $NODE" 127.0.0.1 $PORT)
+        echo "[i] response: $STATUS"
+    fi
 elif  [ ! -z "$NODE" ]; then
     echo "[i] asking for node name..."
     NODE_NAME=$(node_name 127.0.0.1 $PORT)
     echo "[i] response: $NODE_NAME"
+elif [ ! -z "$DEPLOY" ]; then
+    echo "[i] asking to deploy"
+    echo  $DEPLOY
+    STATUS=$(send_command "--deploy $DEPLOY" 127.0.0.1 $PORT)
+    echo "[i] response: $STATUS"
 fi
 
