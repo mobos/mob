@@ -4,6 +4,8 @@
 
 -export([spawn/2]).
 -export([start/1]).
+-export([stop/1]).
+-export([restart/1]).
 -export([is_started/1]).
 -export([terminate/1]).
 
@@ -26,6 +28,9 @@ spawn(Service = #service{name = ServiceName}, Children) ->
 start(ServiceName) ->
     gen_fsm:send_event(ServiceName, start).
 
+stop(ServiceName) ->
+    gen_fsm:send_event(ServiceName, stop).
+
 is_started(ServiceName) ->
     started =:= get_state(ServiceName).
 
@@ -34,6 +39,10 @@ terminate(ServiceName) ->
 
 get_state(ServiceName) ->
     gen_fsm:sync_send_all_state_event(ServiceName, get_state).
+
+restart(ServiceName) ->
+    stop(ServiceName),
+    start(ServiceName).
 
 %% gen_fsm callbacks
 
@@ -46,12 +55,20 @@ stopped(start, State = #state{service = Service}) ->
     {NextState, NewState} = handle_start(Service, State),
     log:notice("[~p] Started '~p' with PID ~p", [?MODULE, Service#service.name, NewState#state.os_pid]),
     {next_state, NextState, NewState};
+stopped(stop, State) ->
+    {next_state, stopped, State};
 stopped(_Event, State) ->
     {next_state, stopped, State}.
 
+started(stop, State = #state{service = Service}) ->
+    log:notice("[~p] Stopping '~p'", [?MODULE, Service#service.name]),
+    {NextState, NewState} = handle_stop(State),
+    {next_state, NextState, NewState};
 started(_Event, State) ->
     {next_state, started, State}.
 
+handle_event(restart, _StateName, S) ->
+    {stop, normal, S};
 handle_event(terminate, _StateName, S) ->
     {stop, normal, S};
 handle_event(_Event, StateName, State) ->
@@ -79,6 +96,11 @@ code_change(_OldVsn, StateName, State, _Extra) ->
     {ok, StateName, State}.
 
 %% Handlers
+
+handle_stop(State = #state{exec_pid = ExecPid}) ->
+    ok = process:stop(ExecPid),
+    CleanedState = State#state{exec_pid = undefined, os_pid = undefined},
+    {stopped, CleanedState}.
 
 handle_start(#service{command = Command}, State = #state{children = Children}) ->
     {Pid, OSPid} = process:exec("bash -c \"" ++ Command ++ "\""),
