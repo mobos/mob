@@ -8,6 +8,7 @@
 -export([stop/1]).
 -export([restart/1]).
 -export([is_started/1]).
+-export([add_child/1]).
 -export([terminate/1]).
 
 -export([init/1,
@@ -44,6 +45,9 @@ get_state(ServiceName) ->
 dependencies(ServiceName) ->
     gen_fsm:sync_send_all_state_event(ServiceName, dependencies).
 
+add_child(ServiceName, Child) ->
+    gen_fsm:sync_send_all_state_event(ServiceName, {add_child, Child}).
+
 restart(ServiceName) ->
     stop(ServiceName),
     start(ServiceName).
@@ -78,6 +82,13 @@ handle_event(terminate, _StateName, S) ->
 handle_event(_Event, StateName, State) ->
     {next_state, StateName, State}.
 
+handle_sync_event({add_child, Child}, _From, StateName, State = #state{children = Children}) ->
+    %% XXX children should be a set
+    NewChild = case lists:member(Child, Children) of
+                   true -> Children;
+                   false -> [Child | Children]
+               end,
+    {reply, ok, StateName, State#state{children = NewChild}};
 handle_sync_event(get_state, _From, StateName, State) ->
     Reply = StateName,
     {reply, Reply, StateName, State};
