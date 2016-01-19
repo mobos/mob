@@ -4,6 +4,7 @@
 
 -export([start_link/0]).
 -export([is_started/1]).
+-export([restart/1]).
 -export([run/2]).
 
 -export([init/1,
@@ -27,6 +28,12 @@ run(Service, Services) ->
     Children = build_children(Service, Services),
     gen_server:cast(?SERVER, {run, Service, Children}).
 
+restart(ServicesNames) when is_list(ServicesNames) ->
+    lists:foreach(fun restart/1, ServicesNames);
+restart(ServiceName) ->
+    log:notice("[~p] Restarting Service: ~p", [?MODULE, ServiceName]),
+    gen_server:cast(?SERVER, {restart, ServiceName}).
+
 is_started(ServiceName) ->
     gen_server:call(?SERVER, {is_started, ServiceName}).
 
@@ -45,8 +52,11 @@ handle_call(_Request, _From, State) ->
 handle_cast({run, Service, Children}, State) ->
     NewState = handle_run(Service, Children, State),
     {noreply, NewState};
+handle_cast({restart, ServiceName}, State) ->
+    NewState = handle_restart(ServiceName, State),
+    {noreply, NewState};
 handle_cast(_Msg, State) ->
-        {noreply, State}.
+    {noreply, State}.
 
 handle_info(_Info, State) ->
         {noreply, State}.
@@ -63,6 +73,12 @@ handle_run(Service, Children, State) ->
     NewState = spawn_service(Service, Children, State),
     start_service(Service, NewState),
     NewState.
+
+handle_restart(ServiceName, State) ->
+    case is_spawned(ServiceName, State) of
+        true -> service:restart(ServiceName);
+        false -> mob:restart(ServiceName)
+    end.
 
 spawn_service(Service, Children, State = #state{spawned = Spawned}) ->
     ServiceName = Service#service.name,

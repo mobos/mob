@@ -97,3 +97,26 @@ should_build_a_list_of_children_test() ->
 
     ?assertEqual(['childb', 'childa'], Children).
 
+should_restart_a_locally_spawned_service_test() ->
+    meck:new(service, [non_strict]),
+    meck:expect(service, restart, fun(_ServiceName) -> ok end),
+
+    ServiceName = 'myservice',
+    State = #state{spawned = [ServiceName]},
+    service_supervisor:handle_restart(ServiceName, State),
+
+    ?assertEqual(1, meck:num_calls(service, restart, [ServiceName])),
+    ?assert(meck:validate(service)),
+    meck:unload(service).
+
+should_delegate_restart_request_for_a_non_locally_spawned_service_test() ->
+    meck:new(mob, [non_strict]),
+    meck:expect(mob, restart, fun(_ServiceName) -> ok end),
+
+    ServiceName = 'myservice',
+    State = #state{spawned = []},
+    service_supervisor:handle_restart(ServiceName, State),
+
+    ?assertEqual(1, meck:num_calls(mob, restart, [ServiceName])),
+    ?assert(meck:validate(mob)),
+    meck:unload(mob).
