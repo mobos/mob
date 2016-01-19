@@ -6,6 +6,7 @@
 -export([announce_spawned_service/3]).
 -export([where_deployed/2]).
 -export([init_net/2]).
+-export([services/1]).
 
 %% XXX discovery should doesn't know service
 %% details
@@ -24,6 +25,9 @@ init_net(Peer, Node) ->
     Nodes = sets:add_element(Node, sets:new()),
     peer:iterative_store(Peer, {?NODES_KEY, Nodes}),
     peer:iterative_store(Peer, {?SERVICES_KEY, sets:new()}).
+
+services(Peer) ->
+    peer:iterative_find_value(Peer, ?SERVICES_KEY).
 
 find_available_node(Peer, _Service) ->
     case peer:iterative_find_value(Peer, ?NODES_KEY) of

@@ -121,8 +121,9 @@ handle_run(Service, State = #state{peer = Peer}) ->
     %% when the service is really spawned and proceed with the
     %% announce
     log:notice("[~p] Run request for ~p", [?MODULE, Service#service.name]),
+    {found, Services} = discovery:services(Peer),
+    service_supervisor:run(Service, Services),
     discovery:announce_spawned_service(Peer, Service, node_name()),
-    service_supervisor:run(Service),
     State.
 
 handle_is_started(ServiceName, State) ->

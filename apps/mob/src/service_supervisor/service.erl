@@ -2,7 +2,7 @@
 
 -behaviour(gen_fsm).
 
--export([spawn/1]).
+-export([spawn/2]).
 -export([start/1]).
 -export([is_started/1]).
 -export([terminate/1]).
@@ -18,10 +18,10 @@
 
 -include("service.hrl").
 
--record(state, {service, os_pid, exec_pid}).
+-record(state, {service, children, os_pid, exec_pid}).
 
-spawn(Service = #service{name = ServiceName}) ->
-    gen_fsm:start({local, ServiceName}, ?MODULE, [Service], []).
+spawn(Service = #service{name = ServiceName}, Children) ->
+    gen_fsm:start({local, ServiceName}, ?MODULE, [Service, Children], []).
 
 start(ServiceName) ->
     gen_fsm:send_event(ServiceName, start).
@@ -37,10 +37,10 @@ get_state(ServiceName) ->
 
 %% gen_fsm callbacks
 
-init([Service]) ->
+init([Service, Children]) ->
     process_flag(trap_exit, true),
     log:notice("[~p] Spawned Service: ~p", [?MODULE, Service#service.name]),
-    {ok, stopped, #state{service = Service}}.
+    {ok, stopped, #state{service = Service, children = Children}}.
 
 stopped(start, State = #state{service = Service}) ->
     {NextState, NewState} = handle_start(Service, State),

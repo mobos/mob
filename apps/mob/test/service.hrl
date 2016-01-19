@@ -10,7 +10,8 @@
 -define(SIMPLE_SERVICE, #service{name = ?SERVICE_NAME, command = ?SERVICE_COMMAND}).
 
 should_spawn_a_service_registering_its_name_test() ->
-    {ok, ServicePid} = service:spawn(?SIMPLE_SERVICE),
+    Children = [],
+    {ok, ServicePid} = service:spawn(?SIMPLE_SERVICE, Children),
     service:terminate(ServicePid),
 
     ?assert(lists:member(?SERVICE_NAME, erlang:registered())).

@@ -4,7 +4,7 @@
 
 -export([start_link/0]).
 -export([is_started/1]).
--export([run/1]).
+-export([run/2]).
 
 -export([init/1,
          handle_call/3,
@@ -22,9 +22,10 @@
 start_link() ->
         gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
-run(Service) ->
+run(Service, Services) ->
     log:notice("[~p] Run Service: ~p", [?MODULE, Service#service.name]),
-    gen_server:cast(?SERVER, {run, Service}).
+    Children = build_children(Service, Services),
+    gen_server:cast(?SERVER, {run, Service, Children}).
 
 is_started(ServiceName) ->
     gen_server:call(?SERVER, {is_started, ServiceName}).
@@ -41,8 +42,8 @@ handle_call(_Request, _From, State) ->
         Reply = ok,
         {reply, Reply, State}.
 
-handle_cast({run, Service}, State) ->
-    NewState = handle_run(Service, State),
+handle_cast({run, Service, Children}, State) ->
+    NewState = handle_run(Service, Children, State),
     {noreply, NewState};
 handle_cast(_Msg, State) ->
         {noreply, State}.
@@ -58,15 +59,15 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% Handlers
 
-handle_run(Service, State) ->
-    NewState = spawn_service(Service, State),
+handle_run(Service, Children, State) ->
+    NewState = spawn_service(Service, Children, State),
     start_service(Service, NewState),
     NewState.
 
-spawn_service(Service, State = #state{spawned = Spawned}) ->
+spawn_service(Service, Children, State = #state{spawned = Spawned}) ->
     ServiceName = Service#service.name,
     case is_spawned(ServiceName, State) of
-        false -> service:spawn(Service),
+        false -> service:spawn(Service, Children),
                  State#state{spawned = [ServiceName | Spawned]};
         true -> State
     end.
@@ -97,6 +98,18 @@ is_locally_started(ServiceName, State) ->
     case is_spawned(ServiceName, State) of
         true -> service:is_started(ServiceName);
         _ -> false
+    end.
+
+build_children(Service, Services) ->
+    build_children(Service, Services, []).
+
+build_children(_Service, [], Children) ->
+    Children;
+build_children(Service, [C | Services], Children) ->
+    ChildName = C#service.name,
+    case lists:member(Service#service.name, C#service.requires) of
+        true -> build_children(Service, Services, [ChildName | Children]);
+        false -> build_children(Service, Services, Children)
     end.
 
 -ifdef(TEST).
