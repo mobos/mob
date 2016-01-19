@@ -42,6 +42,7 @@ should_spawn_but_not_start_a_service_if_its_dependencies_arent_started_test() ->
     State = #state{spawned = [DependencyName]},
 
     meck:expect(service, spawn, fun(_Service, _Children) -> {ok, FakeServicePid} end),
+    meck:expect(service, add_child, fun(_Parent, _Child) -> ok end),
     meck:expect(service, restart, fun(_ServiceName) -> ok end),
     meck:expect(service, is_started, fun(_ServiceName) -> false end),
     meck:expect(mob, is_remotely_started, fun(_ServiceName) -> false end),
@@ -52,6 +53,7 @@ should_spawn_but_not_start_a_service_if_its_dependencies_arent_started_test() ->
     NewState = handle_run(Service, Children, State),
 
     ?assertEqual(1, meck:num_calls(service, spawn, [Service, Children])),
+    ?assertEqual(1, meck:num_calls(service, add_child, [DependencyName, Service#service.name])),
     ?assertEqual(1, meck:num_calls(service, is_started, [DependencyName])),
     ?assertEqual(0, meck:num_calls(service, restart, [Service#service.name])),
     ?assertEqual(ExpectedState, NewState),
@@ -69,6 +71,7 @@ should_search_on_the_network_if_a_dependencies_isnt_found_locally_test() ->
     State = #state{spawned = []},
 
     meck:expect(service, spawn, fun(_Service, _Children) -> {ok, FakeServicePid} end),
+    meck:expect(mob, remotely_add_child, fun(_Parent, _Child) -> ok end),
     meck:expect(service, restart, fun(_ServiceName) -> ok end),
     meck:expect(mob, is_remotely_started, fun(_ServiceName) -> true end),
 
@@ -78,6 +81,7 @@ should_search_on_the_network_if_a_dependencies_isnt_found_locally_test() ->
     NewState = handle_run(Service, Children, State),
 
     ?assertEqual(1, meck:num_calls(service, spawn, [Service, Children])),
+    ?assertEqual(1, meck:num_calls(mob, remotely_add_child, [DependencyName, Service#service.name])),
     ?assertEqual(1, meck:num_calls(mob, is_remotely_started, [DependencyName])),
     ?assertEqual(1, meck:num_calls(service, restart, [Service#service.name])),
     ?assertEqual(ExpectedState, NewState),
@@ -122,3 +126,24 @@ should_delegate_restart_request_for_a_non_locally_spawned_service_test() ->
     ?assertEqual(1, meck:num_calls(mob, restart, [ServiceName])),
     ?assert(meck:validate(mob)),
     meck:unload(mob).
+
+should_add_a_service_as_a_child_for_its_parents_test() ->
+    meck:new(mob, [non_strict]),
+    meck:new(service, [non_strict]),
+
+    meck:expect(service, add_child, fun(_Parent, _Child) -> ok end),
+    meck:expect(mob, remotely_add_child, fun(_Parent, _Child) -> ok end),
+
+    ParentA = parentA,
+    ParentB = parentB,
+    Service = #service{name = my_service, requires = [ParentA, ParentB]},
+
+    State = #state{spawned = [ParentA]},
+    service_supervisor:notify_parents(Service, State),
+
+    ?assertEqual(1, meck:num_calls(service, add_child, [ParentA, Service#service.name])),
+    ?assertEqual(1, meck:num_calls(mob, remotely_add_child, [ParentB, Service#service.name])),
+    ?assert(meck:validate(mob)),
+    ?assert(meck:validate(service)),
+    meck:unload(mob),
+    meck:unload(service).

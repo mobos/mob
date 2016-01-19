@@ -71,6 +71,7 @@ code_change(_OldVsn, State, _Extra) ->
 handle_run(Service, Children, State) ->
     NewState = spawn_service(Service, Children, State),
     start_service(Service, NewState),
+    notify_parents(Service, NewState),
     NewState.
 
 handle_restart(ServiceName, State) ->
@@ -134,6 +135,17 @@ build_children(Service, [C | Services], Children) ->
     case lists:member(Service#service.name, C#service.requires) of
         true -> build_children(Service, Services, [ChildName | Children]);
         false -> build_children(Service, Services, Children)
+    end.
+
+notify_parents(Service, State) ->
+    Parents = Service#service.requires,
+    Child = Service#service.name,
+    lists:foreach(fun(P) -> notify_parent(P, Child, State) end, Parents).
+
+notify_parent(Parent, Child, State) ->
+    case is_spawned(Parent, State) of
+        true -> service:add_child(Parent, Child);
+        false -> mob:remotely_add_child(Parent, Child)
     end.
 
 -ifdef(TEST).
