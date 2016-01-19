@@ -53,9 +53,7 @@ init_peer() ->
 
 init([]) ->
     Peer = init_peer(),
-    %% annunce itself
-    Nodes = sets:add_element(node_name(), sets:new()),
-    discovery:announce_nodes(Peer, Nodes),
+    discovery:init_net(Peer, node_name()),
     {ok, #state{peer = Peer}}.
 
 handle_call(peer, _From, State = #state{peer = Peer}) ->

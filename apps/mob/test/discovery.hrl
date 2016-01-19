@@ -52,11 +52,32 @@ should_announce_a_deployed_service_test() ->
     FakePeer = self(),
     FakeNode = node(),
     Service = #service{name = 'my_service', command = "a command"},
+    Services = sets:new(),
+    UpdatedServices = sets:add_element(Service, Services),
 
     meck:expect(peer, iterative_store, fun(_Peer, {_Key, _Value}) -> ok end),
+    meck:expect(peer, iterative_find_value, fun(_Peer, _Key) -> {found, Services} end),
     discovery:announce_spawned_service(FakePeer, Service, FakeNode),
 
+    ?assertEqual(1, meck:num_calls(peer, iterative_find_value, [FakePeer, services])),
+    ?assertEqual(1, meck:num_calls(peer, iterative_store, [FakePeer, {services, UpdatedServices}])),
     ?assertEqual(1, meck:num_calls(peer, iterative_store, [FakePeer, {Service#service.name, FakeNode}])),
 
+    meck:validate(peer),
+    meck:unload(peer).
+
+should_init_the_information_on_the_network_test() ->
+    meck:new(peer, [non_strict]),
+    FakePeer = self(),
+    FakeNode = self(),
+    EmptyServices = sets:new(),
+    Nodes = sets:add_element(FakeNode, sets:new()),
+
+    meck:expect(peer, iterative_store, fun(_Peer, {_Key, _Value}) -> ok end),
+
+    discovery:init_net(FakePeer, FakeNode),
+
+    ?assertEqual(1, meck:num_calls(peer, iterative_store, [FakePeer, {services, EmptyServices}])),
+    ?assertEqual(1, meck:num_calls(peer, iterative_store, [FakePeer, {nodes, Nodes}])),
     meck:validate(peer),
     meck:unload(peer).
