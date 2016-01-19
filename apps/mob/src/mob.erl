@@ -6,6 +6,7 @@
 -export([start_link/0]).
 -export([join/1]).
 -export([run/1]).
+-export([remotely_restart/1]).
 -export([deploy/1]).
 -export([is_remotely_started/1]).
 -export([node_name/0]).
@@ -40,6 +41,9 @@ node_name() ->
 is_remotely_started(ServiceName) ->
     gen_server:call(mob, {is_remotely_started, ServiceName}).
 
+remotely_restart(ServiceName) ->
+    gen_server:call(mob, {remotely_restart, ServiceName}).
+
 %% Callbacks
 
 init_peer() ->
@@ -73,6 +77,14 @@ handle_call({is_started, ServiceName}, _From, State) ->
 
 handle_call({is_remotely_started, Service}, _From, State) ->
     {Reply, NewState} = handle_is_remotely_started(Service, State),
+    {reply, Reply, NewState};
+
+handle_call({remotely_restart, Service}, _From, State) ->
+    {Reply, NewState} = handle_remotely_restart(Service, State),
+    {reply, Reply, NewState};
+
+handle_call({restart, Service}, _From, State) ->
+    {Reply, NewState} = handle_restart(Service, State),
     {reply, Reply, NewState};
 
 handle_call(_Request, _From, State) ->
@@ -121,7 +133,7 @@ handle_run(Service, State = #state{peer = Peer}) ->
     %% when the service is really spawned and proceed with the
     %% announce
     log:notice("[~p] Run request for ~p", [?MODULE, Service#service.name]),
-    {found, Services} = discovery:services(Peer),
+    Services = discovery:services(Peer),
     service_supervisor:run(Service, Services),
     discovery:announce_spawned_service(Peer, Service, node_name()),
     State.
@@ -130,11 +142,22 @@ handle_is_started(ServiceName, State) ->
     Reply = service_supervisor:is_started(ServiceName),
     {Reply, State}.
 
+handle_restart(ServiceName, State) ->
+    Reply = service_supervisor:restart(ServiceName),
+    {Reply, State}.
+
 handle_is_remotely_started(ServiceName, State = #state{peer = Peer}) ->
     Ret = case discovery:where_deployed(Peer, ServiceName) of
         {found, Node} -> remote_mob:is_started(Node, ServiceName);
         _ -> false
     end,
+    {Ret, State}.
+
+handle_remotely_restart(ServiceName, State = #state{peer = Peer}) ->
+    Ret = case discovery:where_deployed(Peer, ServiceName) of
+              {found, Node} -> remote_mob:restart(Node, ServiceName);
+              _ -> not_found
+          end,
     {Ret, State}.
 
 do_deploy(ParsedService, #state{peer = Peer}) ->

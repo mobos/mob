@@ -31,7 +31,6 @@ run(Service, Services) ->
 restart(ServicesNames) when is_list(ServicesNames) ->
     lists:foreach(fun restart/1, ServicesNames);
 restart(ServiceName) ->
-    log:notice("[~p] Restarting Service: ~p", [?MODULE, ServiceName]),
     gen_server:cast(?SERVER, {restart, ServiceName}).
 
 is_started(ServiceName) ->
@@ -71,14 +70,16 @@ code_change(_OldVsn, State, _Extra) ->
 
 handle_run(Service, Children, State) ->
     NewState = spawn_service(Service, Children, State),
-    start_service(Service, NewState),
+    start_service(Service#service.name, NewState),
     NewState.
 
 handle_restart(ServiceName, State) ->
-    case is_spawned(ServiceName, State) of
-        true -> service:restart(ServiceName);
-        false -> mob:restart(ServiceName)
-    end.
+    Ret = case is_spawned(ServiceName, State) of
+            true -> start_service(ServiceName, State);
+            false -> mob:restart(ServiceName)
+        end,
+    log:notice("[~p] Restarting Service: ~p [~p]", [?MODULE, ServiceName, Ret]),
+    State.
 
 spawn_service(Service, Children, State = #state{spawned = Spawned}) ->
     ServiceName = Service#service.name,
@@ -88,7 +89,8 @@ spawn_service(Service, Children, State = #state{spawned = Spawned}) ->
         true -> State
     end.
 
-start_service(#service{name = ServiceName, requires = Dependencies}, State) ->
+start_service(ServiceName, State) ->
+    Dependencies = service:dependencies(ServiceName),
     case are_started(Dependencies, State) of
         true -> service:start(ServiceName);
         false -> log:notice("[~p] Dependencies for '~p' are not started", [?MODULE, ServiceName])

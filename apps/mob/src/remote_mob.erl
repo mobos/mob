@@ -3,6 +3,7 @@
 -export([connect/1]).
 -export([run/2]).
 -export([peer/1]).
+-export([restart/2]).
 -export([is_started/2]).
 
 connect(NodeName) ->
@@ -16,3 +17,6 @@ peer(Node) ->
 
 is_started(Node, Service) ->
     gen_server:call({mob, Node}, {is_started, Service}).
+
+restart(Node, Service) ->
+    gen_server:call({mob, Node}, {restart, Service}).

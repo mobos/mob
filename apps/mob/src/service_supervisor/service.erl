@@ -4,6 +4,7 @@
 
 -export([spawn/2]).
 -export([start/1]).
+-export([dependencies/1]).
 -export([stop/1]).
 -export([restart/1]).
 -export([is_started/1]).
@@ -39,6 +40,9 @@ terminate(ServiceName) ->
 
 get_state(ServiceName) ->
     gen_fsm:sync_send_all_state_event(ServiceName, get_state).
+
+dependencies(ServiceName) ->
+    gen_fsm:sync_send_all_state_event(ServiceName, dependencies).
 
 restart(ServiceName) ->
     stop(ServiceName),
@@ -76,6 +80,9 @@ handle_event(_Event, StateName, State) ->
 
 handle_sync_event(get_state, _From, StateName, State) ->
     Reply = StateName,
+    {reply, Reply, StateName, State};
+handle_sync_event(dependencies, _From, StateName, State = #state{service = Service}) ->
+    Reply = Service#service.requires,
     {reply, Reply, StateName, State};
 handle_sync_event(_Event, _From, StateName, State) ->
     Reply = ok,

@@ -27,7 +27,8 @@ init_net(Peer, Node) ->
     peer:iterative_store(Peer, {?SERVICES_KEY, sets:new()}).
 
 services(Peer) ->
-    peer:iterative_find_value(Peer, ?SERVICES_KEY).
+    {found, Services} = peer:iterative_find_value(Peer, ?SERVICES_KEY),
+    sets:to_list(Services).
 
 find_available_node(Peer, _Service) ->
     case peer:iterative_find_value(Peer, ?NODES_KEY) of
