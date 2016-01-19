@@ -80,8 +80,9 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 
 %% Handlers
 
-handle_start(#service{command = Command}, State) ->
+handle_start(#service{command = Command}, State = #state{children = Children}) ->
     {Pid, OSPid} = process:exec("bash -c \"" ++ Command ++ "\""),
+    service_supervisor:restart(Children),
     {started, State#state{os_pid = OSPid, exec_pid = Pid}}.
 
 handle_down(ExitInfo, #state{service = Service}) ->
