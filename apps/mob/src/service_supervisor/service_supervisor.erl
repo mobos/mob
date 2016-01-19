@@ -70,7 +70,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 handle_run(Service, Children, State) ->
     NewState = spawn_service(Service, Children, State),
-    start_service(Service#service.name, NewState),
+    start_service(Service, NewState),
     NewState.
 
 handle_restart(ServiceName, State) ->
@@ -89,10 +89,16 @@ spawn_service(Service, Children, State = #state{spawned = Spawned}) ->
         true -> State
     end.
 
-start_service(ServiceName, State) ->
+start_service(#service{name = ServiceName, requires = Dependencies}, State) ->
+    start_service(ServiceName, Dependencies, State);
+
+start_service(ServiceName, State) when is_atom(ServiceName) ->
     Dependencies = service:dependencies(ServiceName),
+    start_service(ServiceName, Dependencies, State).
+
+start_service(ServiceName, Dependencies, State) ->
     case are_started(Dependencies, State) of
-        true -> service:start(ServiceName);
+        true -> service:restart(ServiceName);
         false -> log:notice("[~p] Dependencies for '~p' are not started", [?MODULE, ServiceName])
     end.
 
