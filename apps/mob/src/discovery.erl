@@ -33,7 +33,7 @@ services(Peer) ->
 find_available_node(Peer, _Service) ->
     case peer:iterative_find_value(Peer, ?NODES_KEY) of
         {found, Nodes} ->
-            {ok, hd(sets:to_list(Nodes))};
+            {ok, random_pick(Nodes)};
         _ ->
             {error, no_nodes}
     end.
@@ -54,6 +54,10 @@ where_deployed(Peer, ServiceName) ->
         {found, Node} -> {found, Node};
         _ -> {error, not_found}
     end.
+
+random_pick(Set) ->
+    List = sets:to_list(Set),
+    lists:nth(random:uniform(length(List)), List).
 
 -ifdef(TEST).
 -compile([export_all]).
