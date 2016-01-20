@@ -103,6 +103,23 @@ should_known_if_a_service_is_locally_started_test() ->
     ?assert(Ret),
     stop_mocks([service_supervisor]).
 
+should_add_a_child_a_to_a_remotely_spawned_parent_test() ->
+    start_mocks([discovery, remote_mob]),
+    FakePeer = self(),
+    FakeNode = self(),
+
+    meck:expect(discovery, where_deployed, fun(_Peer, _ServiceName) -> {found, FakeNode} end),
+    meck:expect(remote_mob, add_child, fun(_Node, _Parent, _Child) -> ok end),
+
+    State = #state{peer = FakePeer},
+    Parent = parent,
+    Child = child,
+    {Ret, NewState} = mob:handle_remotely_add_child(Parent, Child, State),
+
+    ?assertEqual(1, meck:num_calls(discovery, where_deployed, [FakePeer, Parent])),
+    ?assertEqual(1, meck:num_calls(remote_mob, add_child, [FakeNode, Parent, Child])),
+    stop_mocks([discovery, remote_mob]).
+
 start_mocks([]) -> ok;
 start_mocks([Mod | Modules]) ->
     meck:new(Mod, [non_strict]),

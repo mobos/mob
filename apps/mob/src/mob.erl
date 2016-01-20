@@ -7,6 +7,7 @@
 -export([join/1]).
 -export([run/1]).
 -export([remotely_restart/1]).
+-export([remotely_add_child/2]).
 -export([deploy/1]).
 -export([is_remotely_started/1]).
 -export([node_name/0]).
@@ -43,6 +44,9 @@ is_remotely_started(ServiceName) ->
 
 remotely_restart(ServiceName) ->
     gen_server:call(mob, {remotely_restart, ServiceName}).
+
+remotely_add_child(ParentName, ChildName) ->
+    gen_server:call(mob, {remotely_add_child, ParentName, ChildName}).
 
 %% Callbacks
 
@@ -83,8 +87,8 @@ handle_call({remotely_restart, Service}, _From, State) ->
     {Reply, NewState} = handle_remotely_restart(Service, State),
     {reply, Reply, NewState};
 
-handle_call({restart, Service}, _From, State) ->
-    {Reply, NewState} = handle_restart(Service, State),
+handle_call({remotely_add_child, Parent, Child}, _From, State) ->
+    {Reply, NewState} = handle_remotely_add_child(Parent, Child, State),
     {reply, Reply, NewState};
 
 handle_call(_Request, _From, State) ->
@@ -93,6 +97,12 @@ handle_call(_Request, _From, State) ->
 
 handle_cast({run, Service}, State) ->
     NewState = handle_run(Service, State),
+    {noreply, NewState};
+handle_cast({restart, Service}, State) ->
+    NewState = handle_restart(Service, State),
+    {noreply, NewState};
+handle_cast({add_child, Parent, Child}, State) ->
+    NewState = handle_add_child(Parent, Child, State),
     {noreply, NewState};
 handle_cast(_Msg, State) ->
     {noreply, State}.
@@ -143,8 +153,8 @@ handle_is_started(ServiceName, State) ->
     {Reply, State}.
 
 handle_restart(ServiceName, State) ->
-    Reply = service_supervisor:restart(ServiceName),
-    {Reply, State}.
+    service_supervisor:restart(ServiceName),
+    State.
 
 handle_is_remotely_started(ServiceName, State = #state{peer = Peer}) ->
     Ret = case discovery:where_deployed(Peer, ServiceName) of
@@ -159,6 +169,17 @@ handle_remotely_restart(ServiceName, State = #state{peer = Peer}) ->
               _ -> not_found
           end,
     {Ret, State}.
+
+handle_remotely_add_child(Parent, Child, State = #state{peer = Peer}) ->
+   Ret = case discovery:where_deployed(Peer, Parent) of
+             {found, Node} -> remote_mob:add_child(Node, Parent, Child);
+             _ -> not_found
+         end,
+   {Ret, State}.
+
+handle_add_child(Parent, Child, State) ->
+    service_supervisor:add_child(Parent, Child),
+    State.
 
 do_deploy(ParsedService, #state{peer = Peer}) ->
     case discovery:where_deployed(Peer, ParsedService#service.name) of

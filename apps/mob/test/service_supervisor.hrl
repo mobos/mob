@@ -117,13 +117,13 @@ should_restart_a_locally_spawned_service_test() ->
 
 should_delegate_restart_request_for_a_non_locally_spawned_service_test() ->
     meck:new(mob, [non_strict]),
-    meck:expect(mob, restart, fun(_ServiceName) -> ok end),
+    meck:expect(mob, remotely_restart, fun(_ServiceName) -> ok end),
 
     ServiceName = 'myservice',
     State = #state{spawned = []},
     service_supervisor:handle_restart(ServiceName, State),
 
-    ?assertEqual(1, meck:num_calls(mob, restart, [ServiceName])),
+    ?assertEqual(1, meck:num_calls(mob, remotely_restart, [ServiceName])),
     ?assert(meck:validate(mob)),
     meck:unload(mob).
 

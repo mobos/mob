@@ -8,7 +8,7 @@
 -export([stop/1]).
 -export([restart/1]).
 -export([is_started/1]).
--export([add_child/1]).
+-export([add_child/2]).
 -export([terminate/1]).
 
 -export([init/1,
@@ -84,6 +84,8 @@ handle_event(_Event, StateName, State) ->
 
 handle_sync_event({add_child, Child}, _From, StateName, State = #state{children = Children}) ->
     %% XXX children should be a set
+    Service = State#state.service,
+    log:notice("[~p] Adding ~p as child for ~p", [?MODULE, Child, Service#service.name]),
     NewChild = case lists:member(Child, Children) of
                    true -> Children;
                    false -> [Child | Children]

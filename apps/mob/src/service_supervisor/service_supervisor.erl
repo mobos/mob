@@ -4,6 +4,7 @@
 
 -export([start_link/0]).
 -export([is_started/1]).
+-export([add_child/2]).
 -export([restart/1]).
 -export([run/2]).
 
@@ -36,11 +37,17 @@ restart(ServiceName) ->
 is_started(ServiceName) ->
     gen_server:call(?SERVER, {is_started, ServiceName}).
 
+add_child(ParentName, ChildName) ->
+    gen_server:call(?SERVER, {add_child, ParentName, ChildName}).
+
 %% Callbacks
 
 init([]) ->
         {ok, #state{spawned = []}}.
 
+handle_call({add_child, ParentName, ChildName}, _From, State) ->
+    {Reply, NewState} = handle_add_child(ParentName, ChildName, State),
+    {reply, Reply, NewState};
 handle_call({is_started, ServiceName}, _From, State) ->
         {Reply, NewState} = handle_is_started(ServiceName, State),
         {reply, Reply, NewState};
@@ -77,7 +84,7 @@ handle_run(Service, Children, State) ->
 handle_restart(ServiceName, State) ->
     Ret = case is_spawned(ServiceName, State) of
             true -> start_service(ServiceName, State);
-            false -> mob:restart(ServiceName)
+            false -> mob:remotely_restart(ServiceName)
         end,
     log:notice("[~p] Restarting Service: ~p [~p]", [?MODULE, ServiceName, Ret]),
     State.
@@ -103,6 +110,9 @@ start_service(ServiceName, Dependencies, State) ->
         false -> log:notice("[~p] Dependencies for '~p' are not started", [?MODULE, ServiceName])
     end.
 
+handle_add_child(ParentName, ChildName, State) ->
+    Reply = notify_parent(ParentName, ChildName, State),
+    {Reply, State}.
 handle_is_started(ServiceName, State) ->
     Reply = is_locally_started(ServiceName, State),
     {Reply, State}.
