@@ -4,6 +4,7 @@
 
 -export([exec/1]).
 -export([stop/1]).
+-export([os_pid/1]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -21,6 +22,9 @@ exec(Command) ->
 stop(ProcessPid) ->
     gen_server:call(ProcessPid, stop).
 
+os_pid(ProcessPid) ->
+    gen_server:call(ProcessPid, os_pid).
+
 %% Callbacks
 
 init([Command]) ->
@@ -31,6 +35,8 @@ init([Command]) ->
 handle_call(stop, _From, S = #state{exec_pid = ExecPid}) ->
     exec:stop(ExecPid),
     {reply, ok, S};
+handle_call(os_pid, _From, S = #state{os_pid = OSPid}) ->
+    {reply, OSPid, S};
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 

@@ -61,7 +61,8 @@ init([Service, Children]) ->
 
 stopped(start, State = #state{service = Service}) ->
     {NextState, NewState} = handle_start(Service, State),
-    log:notice("[~p] Started '~p' with Process ~p", [?MODULE, Service#service.name, NewState#state.process]),
+    OsPid = process:os_pid(NewState#state.process),
+    log:notice("[~p] Started ~p with PID ~p", [?MODULE, Service#service.name, OsPid]),
     {next_state, NextState, NewState};
 stopped(stop, State) ->
     {next_state, stopped, State};
