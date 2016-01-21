@@ -1,1 +1,1 @@
--record(service, {name, command, restart, requires}).
+-record(service, {name, command, params, provider, restart, requires}).
