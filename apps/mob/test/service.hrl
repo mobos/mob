@@ -27,7 +27,7 @@ start_a_service_exec_its_command_in_a_bash_shell_test() ->
     State = #state{service = ?SIMPLE_SERVICE, children = ?SERVICE_CHILDREN},
     {NextState, NewState} = service:handle_start(?SIMPLE_SERVICE, State),
 
-    ?assertEqual(1, meck:num_calls(process, exec, ["bash -c \"" ++ ?SERVICE_COMMAND ++ "\""])),
+    ?assertEqual(1, meck:num_calls(process, exec, [["/bin/bash", "-c", ?SERVICE_COMMAND]])),
     ?assertEqual(1, meck:num_calls(service_supervisor, restart, [?SERVICE_CHILDREN])),
     ?assertEqual(started, NextState),
     ?assertEqual(?FAKE_OSPID, NewState#state.os_pid),

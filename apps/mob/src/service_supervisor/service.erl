@@ -123,7 +123,7 @@ handle_stop(State = #state{exec_pid = ExecPid, service = Service}) ->
     {stopped, CleanedState}.
 
 handle_start(#service{command = Command}, State = #state{children = Children}) ->
-    {Pid, OSPid} = process:exec("bash -c \"" ++ Command ++ "\""),
+    {Pid, OSPid} = process:exec(["/bin/bash", "-c", Command]),
     service_supervisor:restart(Children),
     {started, State#state{os_pid = OSPid, exec_pid = Pid}}.
 
