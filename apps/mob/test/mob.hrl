@@ -5,12 +5,15 @@ should_find_the_correct_node_and_deploy_a_service_test() ->
 
     Service = "{
                  \"name\": \"my_service\",
-                 \"command\": \"a command\"
+                 \"provider\": \"bash\",
+                 \"params\": {
+                     \"command\": \"a command\"
+                 }
                }",
 
     FakePeer = self(),
     FakeNode = fake_node,
-    ParsedService = #service{name = 'my_service', command = "a command"},
+    ParsedService = #service{name = 'my_service', provider = 'bash', params = #{"command" => "a command"}},
 
     meck:expect(service_parser, parse, fun(_) -> {ok, ParsedService} end),
     meck:expect(discovery, where_deployed, fun(_, _) -> {error, not_found} end),
@@ -36,12 +39,16 @@ should_not_deploy_an_already_deployed_service_test() ->
 
     Service = "{
                  \"name\": \"my_service\",
-                 \"command\": \"a command\"
+                 \"provider\": \"bash\",
+                 \"params\": {
+                     \"command\": \"a command\"
+                 }
                }",
 
     FakePeer = self(),
     FakeNode = fake_node,
-    ParsedService = #service{name = 'my_service', command = "a command"},
+
+    ParsedService = #service{name = 'my_service', provider = 'bash', params = #{"command" => "a command"}},
 
     meck:expect(service_parser, parse, fun(_) -> {ok, ParsedService} end),
     meck:expect(discovery, where_deployed, fun(_, _) -> {found, FakeNode} end),

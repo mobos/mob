@@ -4,7 +4,7 @@ should_try_to_find_an_available_node_test() ->
     meck:new(peer, [non_strict]),
     FakePeer = fake_peer,
     FakeNode = fake_node,
-    Service = #service{name = my_service, command = "a command"},
+    Service = #service{name = 'my_service', provider = 'bash', params = #{"command" => "a command"}},
 
     StoredNodes = sets:from_list([FakeNode, FakeNode]),
     meck:expect(peer, iterative_find_value, fun(_, _) -> {found, StoredNodes} end),
@@ -20,7 +20,7 @@ should_return_an_error_if_no_nodes_are_found_test() ->
     meck:new(peer, [non_strict]),
     FakePeer = fake_peer,
     FakeNode = fake_node,
-    Service = #service{name = my_service, command = "a command"},
+    Service = #service{name = 'my_service', provider = 'bash', params = #{"command" => "a command"}},
 
     StoredNodes = sets:from_list([FakeNode, FakeNode]),
     meck:expect(peer, iterative_find_value, fun(_, _) -> StoredNodes end),
@@ -51,7 +51,7 @@ should_announce_a_deployed_service_test() ->
     meck:new(peer, [non_strict]),
     FakePeer = self(),
     FakeNode = node(),
-    Service = #service{name = 'my_service', command = "a command"},
+    Service = #service{name = 'my_service', provider = 'bash', params = #{"command" => "a command"}},
     Services = sets:new(),
     UpdatedServices = sets:add_element(Service, Services),
 

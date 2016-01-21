@@ -7,7 +7,7 @@
 -define(SERVICE_COMMAND, "my command").
 -define(SERVICE_REQUIRES, [first_dependency, second_dependency]).
 -define(SERVICE_CHILDREN, [childa, childb]).
--define(SIMPLE_SERVICE, #service{name = ?SERVICE_NAME, command = ?SERVICE_COMMAND}).
+-define(SIMPLE_SERVICE, #service{name = ?SERVICE_NAME, provider = bash, params = #{"command" => ?SERVICE_COMMAND}, restart = none}).
 
 should_spawn_a_service_registering_its_name_test() ->
     Children = [],

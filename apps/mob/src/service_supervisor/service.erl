@@ -123,7 +123,8 @@ handle_stop(State = #state{process = Process, service = Service}) ->
     CleanedState = State#state{process = undefined},
     {stopped, CleanedState}.
 
-handle_start(#service{command = Command}, State = #state{children = Children}) ->
+handle_start(#service{params = Params}, State = #state{children = Children}) ->
+    #{"command" := Command} = Params,
     {ok, Process} = process:exec(["/bin/bash", "-c", Command]),
     service_supervisor:restart(Children),
     {started, State#state{process = Process}}.
