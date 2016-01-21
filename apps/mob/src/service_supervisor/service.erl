@@ -69,7 +69,6 @@ stopped(_Event, State) ->
     {next_state, stopped, State}.
 
 started(stop, State = #state{service = Service}) ->
-    log:notice("[~p] Stopping '~p'", [?MODULE, Service#service.name]),
     {NextState, NewState} = handle_stop(State),
     {next_state, NextState, NewState};
 started(_Event, State) ->
@@ -117,8 +116,9 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 
 %% Handlers
 
-handle_stop(State = #state{exec_pid = ExecPid}) ->
-    ok = process:stop(ExecPid),
+handle_stop(State = #state{exec_pid = ExecPid, service = Service}) ->
+    Result = process:stop(ExecPid),
+    log:notice("[~p] Stopping ~p [~p]", [?MODULE, Service#service.name, Result]),
     CleanedState = State#state{exec_pid = undefined, os_pid = undefined},
     {stopped, CleanedState}.
 
