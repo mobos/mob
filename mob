@@ -4,14 +4,17 @@ OPTIND=1         # Reset in case getopts has been used previously in the shell.
 
 MOB_PATH="./_build/default/rel/mob/bin"
 PORT=
+PROVIDERS=
 
-while getopts "h?p:" opt; do
+while getopts "h?p:P:" opt; do
     case "$opt" in
     h|\?)
         show_help
         exit 0
         ;;
     p)  PORT=$OPTARG
+        ;;
+    P)  PROVIDERS=$OPTARG
         ;;
     esac
 done
@@ -21,5 +24,5 @@ shift $((OPTIND-1))
 [ "$1" = "--" ] && shift
 
 if [ ! -z "$PORT" ]; then
-    RELX_REPLACE_OS_VARS=true NODE_NAME=$PORT $MOB_PATH/mob console -port $PORT
+    RELX_REPLACE_OS_VARS=true NODE_NAME=$PORT $MOB_PATH/mob console -port $PORT -providers $PROVIDERS
 fi

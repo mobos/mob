@@ -1,6 +1,7 @@
 -module(args_utils).
 
 -export([merge_args/2]).
+-export([get_as_atom/2]).
 -export([get/2]).
 
 merge_args(DefaultArgs, SpecifiedArgs) ->
@@ -17,3 +18,6 @@ get(Option, Args) ->
         {Option, Value} -> Value;
         _ -> []
     end.
+
+get_as_atom(Option, Args) ->
+    [list_to_atom(Arg) || Arg <- get(Option, Args)].

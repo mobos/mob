@@ -72,12 +72,13 @@ should_init_the_information_on_the_network_test() ->
     FakeNode = self(),
     EmptyServices = sets:new(),
     Nodes = sets:add_element(FakeNode, sets:new()),
+    Providers = ['bash'],
 
     meck:expect(peer, iterative_store, fun(_Peer, {_Key, _Value}) -> ok end),
 
-    discovery:init_net(FakePeer, FakeNode),
+    discovery:init_net(FakePeer, FakeNode, Providers),
 
     ?assertEqual(1, meck:num_calls(peer, iterative_store, [FakePeer, {services, EmptyServices}])),
-    ?assertEqual(1, meck:num_calls(peer, iterative_store, [FakePeer, {nodes, Nodes}])),
+    ?assertEqual(1, meck:num_calls(peer, iterative_store, [FakePeer, {bash, Nodes}])),
     meck:validate(peer),
     meck:unload(peer).

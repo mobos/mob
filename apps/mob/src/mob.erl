@@ -3,7 +3,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0]).
+-export([start_link/1]).
 -export([join/1]).
 -export([run/1]).
 -export([remotely_restart/1]).
@@ -22,10 +22,12 @@
 
 -include("service_supervisor/service.hrl").
 
--record(state, {peer}).
+-record(state, {peer, providers}).
 
-start_link() ->
-    gen_server:start_link({local, mob}, ?MODULE, [], []).
+-define(KNOWN_PROVIDERS, [bash]).
+
+start_link(Args) ->
+    gen_server:start_link({local, mob}, ?MODULE, [Args], []).
 
 deploy(Service) ->
     gen_server:call(mob, {deploy, Service}).
@@ -59,10 +61,11 @@ init_peer() ->
     Id = peer:hash_key(node_name()),
     peer:start(Id, K, Alpha).
 
-init([]) ->
+init([Args]) ->
     Peer = init_peer(),
-    discovery:init_net(Peer, node_name()),
-    {ok, #state{peer = Peer}}.
+    Providers = args_utils:get_as_atom(providers, Args),
+    discovery:init_net(Peer, node_name(), Providers),
+    {ok, #state{peer = Peer, providers = Providers}}.
 
 handle_call(peer, _From, State = #state{peer = Peer}) ->
     {reply, Peer, State};
@@ -122,12 +125,12 @@ handle_join(NodeName, State = #state{peer = Peer}) ->
     ConnectionResult = remote_mob:connect(NodeName),
     BootstrapPeer = remote_mob:peer(NodeName),
 
-    UpdatedNodes = discovery:merge_nodes(Peer, BootstrapPeer),
+    UpdatedProviders = discovery:merge_key_sets(Peer, BootstrapPeer, ?KNOWN_PROVIDERS),
     peer:join(Peer, BootstrapPeer),
 
     %% XXX: here should we wait to be sure that the joining process is
     %% completed ?
-    discovery:announce_nodes(Peer, UpdatedNodes),
+    discovery:announce_providers(Peer, UpdatedProviders),
     {ConnectionResult, State}.
 
 handle_deploy(Service, State) ->
