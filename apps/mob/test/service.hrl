@@ -1,7 +1,6 @@
 -include_lib("eunit/include/eunit.hrl").
 
--define(FAKE_OSPID, self()).
--define(FAKE_EXECPID, self()).
+-define(FAKE_PROCESS, self()).
 -define(SIGTERM, 15).
 
 -define(SERVICE_NAME, my_service).
@@ -22,7 +21,7 @@ start_a_service_exec_its_command_in_a_bash_shell_test() ->
     meck:new(service_supervisor, [non_strict]),
 
     meck:expect(service_supervisor, restart, fun(_Children) -> ok end),
-    meck:expect(process, exec, fun(_Command) -> {?FAKE_OSPID, ?FAKE_EXECPID} end),
+    meck:expect(process, exec, fun(_Command) -> {ok, ?FAKE_PROCESS} end),
 
     State = #state{service = ?SIMPLE_SERVICE, children = ?SERVICE_CHILDREN},
     {NextState, NewState} = service:handle_start(?SIMPLE_SERVICE, State),
@@ -30,8 +29,7 @@ start_a_service_exec_its_command_in_a_bash_shell_test() ->
     ?assertEqual(1, meck:num_calls(process, exec, [["/bin/bash", "-c", ?SERVICE_COMMAND]])),
     ?assertEqual(1, meck:num_calls(service_supervisor, restart, [?SERVICE_CHILDREN])),
     ?assertEqual(started, NextState),
-    ?assertEqual(?FAKE_OSPID, NewState#state.os_pid),
-    ?assertEqual(?FAKE_EXECPID, NewState#state.exec_pid),
+    ?assertEqual(?FAKE_PROCESS, NewState#state.process),
     ?assert(meck:validate(process)),
     ?assert(meck:validate(service_supervisor)),
 
@@ -43,11 +41,11 @@ when_a_started_service_goes_down_become_stopped_test() ->
     meck:expect(restart_policy, need_restart, fun(_Policy, _ExitCode) -> false end),
 
     ExitCode = {signal, ?SIGTERM},
-    State = #state{service = ?SIMPLE_SERVICE, os_pid = ?FAKE_OSPID, exec_pid = ?FAKE_EXECPID},
+    State = #state{service = ?SIMPLE_SERVICE, process = ?FAKE_PROCESS},
     {NextState, CleanedState} = service:handle_down(ExitCode, State),
 
     ?assertEqual(stopped, NextState),
-    ?assertEqual(#state{service = ?SIMPLE_SERVICE}, CleanedState),
+    ?assertEqual(#state{service = ?SIMPLE_SERVICE, process = undefined}, CleanedState),
     ?assert(meck:validate(restart_policy)),
     meck:unload(restart_policy).
 
@@ -57,11 +55,10 @@ when_a_started_service_goes_down_apply_its_restart_policy_test() ->
     meck:expect(restart_policy, need_restart, fun(_Policy, _ExitCode) -> true end),
     meck:expect(service_supervisor, restart, fun(_ServiceName) -> ok end),
 
-    FakeOsPid = 1111,
     RestartService = #service{name = always_restart, restart = always},
     ExitCode = {status, 0},
 
-    State = #state{service = RestartService, os_pid = FakeOsPid},
+    State = #state{service = RestartService},
     {NextState, CleanedState} = service:handle_down(ExitCode, State),
 
     ?assertEqual(1, meck:num_calls(restart_policy, need_restart, [RestartService#service.restart, ExitCode])),

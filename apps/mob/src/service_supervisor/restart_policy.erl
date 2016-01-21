@@ -2,10 +2,14 @@
 
 -export([need_restart/2]).
 
-need_restart(always, _ExitCode) -> true;
-need_restart(on_error, ExitCode) when ExitCode =/= 0 -> true;
-need_restart(on_error, _ExitCode) -> false;
-need_restart(none, _ExitCode) -> false.
+need_restart(always, {exit_code, _}) -> true;
+need_restart(always, {signal, _}) -> true;
+
+need_restart(on_error, {exit_code, 0}) -> false;
+need_restart(on_error, {exit_code, _}) -> true;
+need_restart(on_error, {signal, _}) -> false;
+
+need_restart(none, _ExitInfo) -> false.
 
 -ifdef(TEST).
 -compile([export_all]).

@@ -22,7 +22,7 @@
 
 -include("service.hrl").
 
--record(state, {service, children, os_pid, exec_pid}).
+-record(state, {service, children, process}).
 
 spawn(Service = #service{name = ServiceName}, Children) ->
     gen_fsm:start({local, ServiceName}, ?MODULE, [Service, Children], []).
@@ -61,14 +61,14 @@ init([Service, Children]) ->
 
 stopped(start, State = #state{service = Service}) ->
     {NextState, NewState} = handle_start(Service, State),
-    log:notice("[~p] Started '~p' with PID ~p", [?MODULE, Service#service.name, NewState#state.os_pid]),
+    log:notice("[~p] Started '~p' with Process ~p", [?MODULE, Service#service.name, NewState#state.process]),
     {next_state, NextState, NewState};
 stopped(stop, State) ->
     {next_state, stopped, State};
 stopped(_Event, State) ->
     {next_state, stopped, State}.
 
-started(stop, State = #state{service = Service}) ->
+started(stop, State) ->
     {NextState, NewState} = handle_stop(State),
     {next_state, NextState, NewState};
 started(_Event, State) ->
@@ -100,9 +100,9 @@ handle_sync_event(_Event, _From, StateName, State) ->
     Reply = ok,
     {reply, Reply, StateName, State}.
 
-handle_info({'DOWN', _, process, FromExecPid, ExitInfo}, _, State = #state{exec_pid = ExecPid})
-      when FromExecPid =:= ExecPid ->
-    {NextState, NewState} = handle_down(process:status(ExitInfo), State),
+handle_info({'EXIT', FromProcess, {shutdown, ExitInfo}}, _, State = #state{process = Process})
+      when FromProcess =:= Process ->
+    {NextState, NewState} = handle_down(ExitInfo, State),
     {next_state, NextState, NewState};
 
 handle_info(_Info, StateName, State) ->
@@ -116,16 +116,16 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 
 %% Handlers
 
-handle_stop(State = #state{exec_pid = ExecPid, service = Service}) ->
-    Result = process:stop(ExecPid),
+handle_stop(State = #state{process = Process, service = Service}) ->
+    Result = process:stop(Process),
     log:notice("[~p] Stopping ~p [~p]", [?MODULE, Service#service.name, Result]),
-    CleanedState = State#state{exec_pid = undefined, os_pid = undefined},
+    CleanedState = State#state{process = undefined},
     {stopped, CleanedState}.
 
 handle_start(#service{command = Command}, State = #state{children = Children}) ->
-    {Pid, OSPid} = process:exec(["/bin/bash", "-c", Command]),
+    {ok, Process} = process:exec(["/bin/bash", "-c", Command]),
     service_supervisor:restart(Children),
-    {started, State#state{os_pid = OSPid, exec_pid = Pid}}.
+    {started, State#state{process = Process}}.
 
 handle_down(ExitCode, #state{service = Service, children = Children}) ->
     log:notice("[~p] ~p Exited with ~p", [?MODULE, Service#service.name, ExitCode]),
