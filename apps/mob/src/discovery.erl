@@ -2,7 +2,6 @@
 
 -export([merge_key_sets/3]).
 -export([find_available_node/2]).
--export([announce_nodes/2]).
 -export([announce_providers/2]).
 -export([announce_spawned_service/3]).
 -export([where_deployed/2]).
@@ -13,7 +12,6 @@
 %% details
 -include("service_supervisor/service.hrl").
 
--define(NODES_KEY, nodes).
 -define(SERVICES_KEY, services).
 
 get_key_set(Peer, Key) ->
@@ -39,8 +37,8 @@ services(Peer) ->
     {found, Services} = peer:iterative_find_value(Peer, ?SERVICES_KEY),
     sets:to_list(Services).
 
-find_available_node(Peer, _Service) ->
-    case peer:iterative_find_value(Peer, ?NODES_KEY) of
+find_available_node(Peer, Service) ->
+    case peer:iterative_find_value(Peer, Service#service.provider) of
         {found, Nodes} ->
             {ok, random_pick(Nodes)};
         _ ->
@@ -51,9 +49,6 @@ announce_providers(_Peer, []) -> ok;
 announce_providers(Peer, [{ProviderName, Nodes} | Providers]) ->
     peer:iterative_store(Peer, {ProviderName, Nodes}),
     announce_providers(Peer, Providers).
-
-announce_nodes(Peer, UpdatedNodes) ->
-    peer:iterative_store(Peer, {?NODES_KEY, UpdatedNodes}).
 
 announce_spawned_service(Peer, Service, OwningNode) ->
     ServiceName = Service#service.name,
