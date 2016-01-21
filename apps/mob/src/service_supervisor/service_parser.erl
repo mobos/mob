@@ -17,11 +17,13 @@ json_to_service(BinaryService) ->
     {<<"command">>, BinaryCommand} = lists:keyfind(<<"command">>, 1, ParsedService),
 
     BinaryRequires = get_or_default(<<"requires">>, [], ParsedService),
+    BinaryRestart = get_or_default(<<"restart">>, <<"none">>, ParsedService),
 
     #service {
        name = binary_to_atom(BinaryName, utf8),
        command = binary_to_list(BinaryCommand),
-       requires = [binary_to_atom(Dependency, utf8) || Dependency <- BinaryRequires]
+       requires = [binary_to_atom(Dependency, utf8) || Dependency <- BinaryRequires],
+       restart = binary_to_atom(BinaryRestart, utf8)
     }.
 
 get_or_default(Key, Default, ParsedService) ->

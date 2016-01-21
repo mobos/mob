@@ -102,7 +102,7 @@ handle_sync_event(_Event, _From, StateName, State) ->
 
 handle_info({'DOWN', _, process, FromExecPid, ExitInfo}, _, State = #state{exec_pid = ExecPid})
       when FromExecPid =:= ExecPid ->
-    {NextState, NewState} = handle_down(ExitInfo, State),
+    {NextState, NewState} = handle_down(process:status(ExitInfo), State),
     {next_state, NextState, NewState};
 
 handle_info(_Info, StateName, State) ->
@@ -127,11 +127,13 @@ handle_start(#service{command = Command}, State = #state{children = Children}) -
     service_supervisor:restart(Children),
     {started, State#state{os_pid = OSPid, exec_pid = Pid}}.
 
-handle_down(ExitInfo, #state{service = Service}) ->
-    {exit_status, ExitStatus} = ExitInfo,
-    CleanedState = #state{service = Service},
-
-    log:notice("[~p] ~p exited with exit-status ~p", [?MODULE, Service#service.name, ExitStatus]),
+handle_down(ExitCode, #state{service = Service, children = Children}) ->
+    log:notice("[~p] ~p Exited with ~p", [?MODULE, Service#service.name, ExitCode]),
+    case restart_policy:need_restart(Service#service.restart, ExitCode) of
+        true -> service_supervisor:restart(Service#service.name);
+        _ -> ok
+    end,
+    CleanedState = #state{service = Service, children = Children},
     {stopped, CleanedState}.
 
 -ifdef(TEST).
