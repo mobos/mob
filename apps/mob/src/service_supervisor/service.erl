@@ -22,7 +22,7 @@
 
 -include("service.hrl").
 
--record(state, {service, children, process}).
+-record(state, {service, children, provider}).
 
 spawn(Service = #service{name = ServiceName}, Children) ->
     gen_fsm:start({local, ServiceName}, ?MODULE, [Service, Children], []).
@@ -61,8 +61,8 @@ init([Service, Children]) ->
 
 stopped(start, State = #state{service = Service}) ->
     {NextState, NewState} = handle_start(Service, State),
-    OsPid = process:os_pid(NewState#state.process),
-    log:notice("[~p] Started ~p with PID ~p", [?MODULE, Service#service.name, OsPid]),
+    ServicePid = provider:pid(NewState#state.provider),
+    log:notice("[~p] Started ~p with PID ~p", [?MODULE, Service#service.name, ServicePid]),
     {next_state, NextState, NewState};
 stopped(stop, State) ->
     {next_state, stopped, State};
@@ -101,8 +101,8 @@ handle_sync_event(_Event, _From, StateName, State) ->
     Reply = ok,
     {reply, Reply, StateName, State}.
 
-handle_info({'EXIT', FromProcess, {shutdown, ExitInfo}}, _, State = #state{process = Process})
-      when FromProcess =:= Process ->
+handle_info({'EXIT', FromProvider, {shutdown, ExitInfo}}, _, State = #state{provider = Provider})
+      when FromProvider =:= Provider ->
     {NextState, NewState} = handle_down(ExitInfo, State),
     {next_state, NextState, NewState};
 
@@ -117,17 +117,17 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 
 %% Handlers
 
-handle_stop(State = #state{process = Process, service = Service}) ->
-    Result = process:stop(Process),
+handle_stop(State = #state{service = Service, provider = Provider}) ->
+    Result = provider:stop(Provider),
     log:notice("[~p] Stopping ~p [~p]", [?MODULE, Service#service.name, Result]),
-    CleanedState = State#state{process = undefined},
+    CleanedState = State#state{provider = undefined},
     {stopped, CleanedState}.
 
-handle_start(#service{params = Params}, State = #state{children = Children}) ->
-    #{"command" := Command} = Params,
-    {ok, Process} = process:exec(["/bin/bash", "-c", Command]),
+handle_start(Service, State = #state{children = Children}) ->
+    {ok, Provider} = provider:init(Service#service.provider, Service#service.params),
+    provider:start(Provider),
     service_supervisor:restart(Children),
-    {started, State#state{process = Process}}.
+    {started, State#state{provider = Provider}}.
 
 handle_down(ExitCode, #state{service = Service, children = Children}) ->
     log:notice("[~p] ~p Exited with ~p", [?MODULE, Service#service.name, ExitCode]),

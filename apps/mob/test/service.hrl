@@ -4,10 +4,13 @@
 -define(SIGTERM, 15).
 
 -define(SERVICE_NAME, my_service).
--define(SERVICE_COMMAND, "my command").
--define(SERVICE_REQUIRES, [first_dependency, second_dependency]).
 -define(SERVICE_CHILDREN, [childa, childb]).
--define(SIMPLE_SERVICE, #service{name = ?SERVICE_NAME, provider = bash, params = #{"command" => ?SERVICE_COMMAND}, restart = none}).
+-define(SERVICE_PROVIDER, bash).
+-define(SERVICE_PARAMS, #{"command" => "my command"}).
+-define(SIMPLE_SERVICE, #service{name = ?SERVICE_NAME,
+                                 provider = ?SERVICE_PROVIDER,
+                                 params = ?SERVICE_PARAMS,
+                                 restart = none}).
 
 should_spawn_a_service_registering_its_name_test() ->
     Children = [],
@@ -16,24 +19,26 @@ should_spawn_a_service_registering_its_name_test() ->
 
     ?assert(lists:member(?SERVICE_NAME, erlang:registered())).
 
-start_a_service_exec_its_command_in_a_bash_shell_test() ->
-    meck:new(process, [non_strict]),
+start_a_service_exec_its_provider_test() ->
+    meck:new(provider, [non_strict]),
     meck:new(service_supervisor, [non_strict]),
 
+    FakeProvider = self(),
     meck:expect(service_supervisor, restart, fun(_Children) -> ok end),
-    meck:expect(process, exec, fun(_Command) -> {ok, ?FAKE_PROCESS} end),
+    meck:expect(provider, init, fun(_ProviderName, _Params) -> {ok, FakeProvider} end),
+    meck:expect(provider, start, fun(_Provider) -> ok end),
 
-    State = #state{service = ?SIMPLE_SERVICE, children = ?SERVICE_CHILDREN},
+    State = #state{service = ?SIMPLE_SERVICE, provider = FakeProvider, children = ?SERVICE_CHILDREN},
     {NextState, NewState} = service:handle_start(?SIMPLE_SERVICE, State),
 
-    ?assertEqual(1, meck:num_calls(process, exec, [["/bin/bash", "-c", ?SERVICE_COMMAND]])),
+    ?assertEqual(1, meck:num_calls(provider, init, [?SERVICE_PROVIDER, ?SERVICE_PARAMS])),
+    ?assertEqual(1, meck:num_calls(provider, start, [FakeProvider])),
     ?assertEqual(1, meck:num_calls(service_supervisor, restart, [?SERVICE_CHILDREN])),
     ?assertEqual(started, NextState),
-    ?assertEqual(?FAKE_PROCESS, NewState#state.process),
-    ?assert(meck:validate(process)),
+    ?assert(meck:validate(provider)),
     ?assert(meck:validate(service_supervisor)),
 
-    meck:unload(process),
+    meck:unload(provider),
     meck:unload(service_supervisor).
 
 when_a_started_service_goes_down_become_stopped_test() ->
@@ -41,11 +46,10 @@ when_a_started_service_goes_down_become_stopped_test() ->
     meck:expect(restart_policy, need_restart, fun(_Policy, _ExitCode) -> false end),
 
     ExitCode = {signal, ?SIGTERM},
-    State = #state{service = ?SIMPLE_SERVICE, process = ?FAKE_PROCESS},
+    State = #state{service = ?SIMPLE_SERVICE},
     {NextState, CleanedState} = service:handle_down(ExitCode, State),
 
     ?assertEqual(stopped, NextState),
-    ?assertEqual(#state{service = ?SIMPLE_SERVICE, process = undefined}, CleanedState),
     ?assert(meck:validate(restart_policy)),
     meck:unload(restart_policy).
 
