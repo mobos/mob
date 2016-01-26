@@ -24,7 +24,7 @@
 
 -record(state, {peer, providers}).
 
--define(KNOWN_PROVIDERS, [bash]).
+-define(KNOWN_PROVIDERS, [bash, docker]).
 
 start_link(Args) ->
     gen_server:start_link({local, mob}, ?MODULE, [Args], []).
