@@ -3,6 +3,7 @@
 -behaviour(gen_server).
 
 -export([exec/1]).
+-export([syn_exec/1]).
 -export([stop/1]).
 -export([os_pid/1]).
 
@@ -18,6 +19,13 @@
 
 exec(Command) ->
     gen_server:start_link(?MODULE, [Command], []).
+
+syn_exec(Command) ->
+    case exec:run(Command, [sync, stdout]) of
+        {_, []} -> {ok, translate_status(normal)};
+        {_, [{stdout, Stdout}]} -> {ok, translate_status(normal), Stdout};
+        {_, [ExitInfo, {stdout, Stdout}]} -> {ok, translate_status(ExitInfo), Stdout}
+    end.
 
 stop(ProcessPid) ->
     gen_server:call(ProcessPid, stop).
