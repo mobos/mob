@@ -2,7 +2,7 @@
 
 -behaviour(gen_server).
 
--export([exec/1]).
+-export([exec/1, exec/2]).
 -export([syn_exec/1]).
 -export([stop/1]).
 -export([os_pid/1]).
@@ -15,10 +15,12 @@
      terminate/2,
      code_change/3]).
 
--record(state, {os_pid, exec_pid}).
+-record(state, {owner, os_pid, exec_pid}).
 
 exec(Command) ->
-    gen_server:start_link(?MODULE, [Command], []).
+    exec(Command, []).
+exec(Command, Options) ->
+    gen_server:start_link(?MODULE, [Command, self(), Options], []).
 
 syn_exec(Command) ->
     case exec:run(Command, [sync, stdout]) of
@@ -35,10 +37,10 @@ os_pid(ProcessPid) ->
 
 %% Callbacks
 
-init([Command]) ->
+init([Command, Owner, Options]) ->
     process_flag(trap_exit, true),
-    {ok, ExecPid, OSPid} = exec:run_link(Command, []),
-    {ok, #state{os_pid = OSPid, exec_pid = ExecPid}}.
+    {ok, ExecPid, OSPid} = exec:run_link(Command, Options),
+    {ok, #state{os_pid = OSPid, exec_pid = ExecPid, owner = Owner}}.
 
 handle_call(stop, _From, S = #state{exec_pid = ExecPid}) ->
     exec:stop(ExecPid),
@@ -51,6 +53,9 @@ handle_call(_Request, _From, State) ->
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
+handle_info({stdout, FromOsPid, FlushedStdout}, S = #state{os_pid = OsPid, owner = Owner}) when FromOsPid =:= OsPid ->
+    Owner ! {stdout, self(), FlushedStdout},
+    {noreply, S};
 handle_info({'EXIT',FromExecPid,ExitInfo}, S = #state{exec_pid = ExecPid}) when FromExecPid =:= ExecPid ->
     {stop, {shutdown, translate_status(ExitInfo)}, S}.
 
