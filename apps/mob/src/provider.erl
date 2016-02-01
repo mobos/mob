@@ -12,7 +12,7 @@ start(Provider) ->
     gen_server:call(Provider, start, infinity).
 
 stop(Provider) ->
-    gen_server:call(Provider, stop).
+    gen_server:call(Provider, stop, infinity).
 
 pid(Provider) ->
-    gen_server:call(Provider, pid).
+    gen_server:call(Provider, pid, infinity).
