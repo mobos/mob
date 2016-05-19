@@ -123,27 +123,23 @@ should_fill_the_results_with_other_contacts_if_the_closest_bucket_is_not_full({K
     [?_assertEqual([TwoPeerContact, ThreePeerContact, FivePeerContact], ClosestContacts)].
 
 should_search_a_key_within_each_bucket_and_refresh_its_content({KbucketPid, Peer}) ->
-    ZeroBucketContact  = {self(), 12},
-    OneBucketContact   = {self(), 15},
-    TwoBucketContact   = {self(),  9},
-    ThreeBucketContact = {self(),  5},
-    AllContacts = [ZeroBucketContact, OneBucketContact, TwoBucketContact, ThreeBucketContact],
-    meck:expect(peer, iterative_find_peers, fun(_, Key) ->
-                                                case Key of
-                                                    12 -> AllContacts;
-                                                    15 -> AllContacts;
-                                                     9 -> AllContacts;
-                                                     5 -> AllContacts
-                                                end
-                                            end),
+    ZeroBucketContactId   = 12,
+    OneBucketContactId    = 15,
+    SecondBucketContactId = 9,
+    ThirdBucketContactId  = 5,
+    meck:expect(peer, iterative_find_peers, fun always_successful_iterative_find_peers/2),
 
     kbucket:refresh(KbucketPid),
 
     timer:sleep(50),
-    [?_assertEqual([ZeroBucketContact],  kbucket:get(KbucketPid, 0)),
-     ?_assertEqual([OneBucketContact],   kbucket:get(KbucketPid, 1)),
-     ?_assertEqual([TwoBucketContact],   kbucket:get(KbucketPid, 2)),
-     ?_assertEqual([ThreeBucketContact], kbucket:get(KbucketPid, 3))].
+    [?_assertMatch([{_, ZeroBucketContactId}],   kbucket:get(KbucketPid, 0)),
+     ?_assertMatch([{_, OneBucketContactId}],    kbucket:get(KbucketPid, 1)),
+     ?_assertMatch([{_, SecondBucketContactId}], kbucket:get(KbucketPid, 2)),
+     ?_assertMatch([{_, ThirdBucketContactId}],  kbucket:get(KbucketPid, 3))].
+
+always_successful_iterative_find_peers(_, Key) ->
+    FakeSearchedContact = {self(), Key},
+    [FakeSearchedContact].
 
 put_contacts(KbucketPid, []) ->
     ok;
