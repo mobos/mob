@@ -50,7 +50,8 @@ peer_suite_test_() ->
      ?setup(fun do_not_ping_the_least_seen_contact_if_it_is_the_same_to_put_but_update_it/1),
      ?setup(fun should_returns_an_empty_list_for_an_unknown_distance/1),
      ?setup(fun should_fill_the_results_with_other_contacts_if_the_closest_bucket_is_not_full/1),
-     ?setup(fun should_returns_up_to_k_contacts_closest_to_a_key/1),
+     ?setup(fun should_returns_the_k_contacts_closest_to_a_key/1),
+     ?setup(fun should_returns_less_than_k_contacts_if_not_all_available/1),
      ?setup(fun should_search_a_key_within_each_bucket_and_refresh_its_content/1)].
 
 should_compute_the_distance_of_two_id_test() ->
@@ -117,8 +118,8 @@ do_not_ping_the_least_seen_contact_if_it_is_the_same_to_put_but_update_it({Kbuck
     [?_assertEqual(ExpectedBucket, kbucket:get(KbucketPid, 2)),
      ?_assertEqual(0, meck:num_calls(peer, check_link, [?TWO_PEER_1, Peer]))].
 
-should_returns_up_to_k_contacts_closest_to_a_key({KbucketPid, _}) ->
-    put_contacts(KbucketPid, [?TWO_PEER_3, ?TWO_PEER_2, ?TWO_PEER_1]),
+should_returns_the_k_contacts_closest_to_a_key({KbucketPid, _}) ->
+    put_contacts(KbucketPid, [?THIRD_PEER_1, ?TWO_PEER_3, ?TWO_PEER_2, ?TWO_PEER_1]),
 
     ClosestContacts = kbucket:closest_contacts(KbucketPid, 2#1101),
 
@@ -130,6 +131,13 @@ should_fill_the_results_with_other_contacts_if_the_closest_bucket_is_not_full({K
     ClosestContacts = kbucket:closest_contacts(KbucketPid, 2#1010),
 
     [?_assertEqual([?TWO_PEER_2, ?TWO_PEER_1, ?ONE_PEER_1], ClosestContacts)].
+
+should_returns_less_than_k_contacts_if_not_all_available({KbucketPid, _}) ->
+    put_contacts(KbucketPid, [?TWO_PEER_1, ?ONE_PEER_1]),
+
+    ClosestContacts = kbucket:closest_contacts(KbucketPid, 2#1010),
+
+    [?_assertEqual([?TWO_PEER_1, ?ONE_PEER_1], ClosestContacts)].
 
 should_search_a_key_within_each_bucket_and_refresh_its_content({KbucketPid, _}) ->
     meck:expect(peer, iterative_find_peers, fun always_successful_iterative_find_peers/2),
