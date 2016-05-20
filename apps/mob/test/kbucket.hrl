@@ -1,9 +1,11 @@
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("test_macro.hrl").
 
--define(PEER_ID, 13).
--define(ID_LENGTH, 4).
+-define(PEER_ID, 2#1101).
 -define(ALPHA, 3).
+
+-define(ID_BIT_LENGTH, 4).
+-define(K, 3).
 
 % build a fake peer with the specified ID and fixed (dummy) PID
 -define(FAKE_PEER(ID), {list_to_pid("<0.255.255>"), ID}).
@@ -29,9 +31,8 @@
 
 start() ->
     meck:new(peer),
-    meck:expect(peer, start, fun(Id, Kbucket, Alpha) -> {self(), Id} end),
-    K = 3,
-    KbucketPid = kbucket:start(K, ?ID_LENGTH),
+    meck:expect(peer, start, fun(Id, _, _) -> ?FAKE_PEER(Id) end),
+    KbucketPid = kbucket:start(?K, ?ID_BIT_LENGTH),
     Peer = peer:start(?PEER_ID, KbucketPid, ?ALPHA),
     kbucket:set_peer(KbucketPid, Peer),
     {KbucketPid, Peer}.
@@ -130,7 +131,7 @@ should_fill_the_results_with_other_contacts_if_the_closest_bucket_is_not_full({K
 
     [?_assertEqual([?TWO_PEER_2, ?TWO_PEER_1, ?ONE_PEER_1], ClosestContacts)].
 
-should_search_a_key_within_each_bucket_and_refresh_its_content({KbucketPid, Peer}) ->
+should_search_a_key_within_each_bucket_and_refresh_its_content({KbucketPid, _}) ->
     meck:expect(peer, iterative_find_peers, fun always_successful_iterative_find_peers/2),
 
     kbucket:refresh(KbucketPid),
@@ -144,7 +145,7 @@ should_search_a_key_within_each_bucket_and_refresh_its_content({KbucketPid, Peer
 always_successful_iterative_find_peers(_, Key) ->
     [?FAKE_PEER(Key)].
 
-put_contacts(KbucketPid, []) ->
+put_contacts(_KbucketPid, []) ->
     ok;
 put_contacts(KbucketPid, [Contact | Contacts]) ->
     ok = kbucket:put(KbucketPid, Contact),
