@@ -38,60 +38,63 @@ start() ->
     {KbucketPid, Peer}.
 
 teardown(_) ->
+    ?assert(meck:validate(peer)),
     meck:unload(peer).
 
 peer_suite_test_() ->
-    [?setup(fun should_start_a_kbucket_process/1),
-     ?setup(fun should_create_a_bucket_if_not_exists/1),
-     ?setup(fun should_append_a_contacts_with_the_same_bucket_index/1),
-     ?setup(fun should_update_an_already_present_contacts/1),
-     ?setup(fun ping_the_least_seen_contact_when_a_bucket_is_full_and_remove_if_doesnt_respond/1),
-     ?setup(fun ping_the_least_seen_contact_when_a_bucket_is_full_and_mantain_it_if_respond/1),
+    [?setup(fun compute_the_distance_of_two_id/1),
+     ?setup(fun returns_the_correct_bucket_index_of_a_distance/1),
+     ?setup(fun start_a_kbucket_process/1),
+     ?setup(fun create_a_bucket_if_not_exists/1),
+     ?setup(fun returns_an_empty_list_for_an_unknown_bucket_index/1),
+     ?setup(fun put_a_contact_with_the_same_bucket_index_to_the_tail/1),
+     ?setup(fun move_to_the_tail_an_already_present_contact/1),
+     ?setup(fun ping_the_least_seen_contact_when_a_bucket_is_full_and_remove_if_doesnt_reply/1),
+     ?setup(fun ping_the_least_seen_contact_when_a_bucket_is_full_and_mantain_it_if_reply/1),
      ?setup(fun do_not_ping_the_least_seen_contact_if_it_is_the_same_to_put_but_update_it/1),
-     ?setup(fun should_returns_an_empty_list_for_an_unknown_distance/1),
-     ?setup(fun should_fill_the_results_with_other_contacts_if_the_closest_bucket_is_not_full/1),
-     ?setup(fun should_returns_the_k_contacts_closest_to_a_key/1),
-     ?setup(fun should_returns_less_than_k_contacts_if_not_all_available/1),
-     ?setup(fun should_search_a_key_within_each_bucket_and_refresh_its_content/1)].
+     ?setup(fun returns_the_k_contacts_closest_to_a_key/1),
+     ?setup(fun fill_the_results_with_other_contacts_if_the_closest_bucket_is_not_full/1),
+     ?setup(fun returns_less_than_k_contacts_if_not_all_available/1),
+     ?setup(fun search_a_key_within_each_bucket_and_refresh_its_content/1)].
 
-should_compute_the_distance_of_two_id_test() ->
-    ?assertEqual(3, kbucket:distance(2#0001, 2#0010)).
+compute_the_distance_of_two_id(_) ->
+    [?_assertEqual(3, kbucket:distance(2#0001, 2#0010))].
 
-should_returns_the_correct_bucket_index_of_a_distance_test() ->
-    ?assertEqual(0, kbucket:bucket_index(1)),
-    ?assertEqual(1, kbucket:bucket_index(2)),
-    ?assertEqual(1, kbucket:bucket_index(3)),
-    ?assertEqual(2, kbucket:bucket_index(4)),
-    ?assertEqual(2, kbucket:bucket_index(5)),
-    ?assertEqual(2, kbucket:bucket_index(6)),
-    ?assertEqual(2, kbucket:bucket_index(7)),
-    ?assertEqual(3, kbucket:bucket_index(8)),
-    ?assertEqual(7, kbucket:bucket_index(130)).
+returns_the_correct_bucket_index_of_a_distance(_) ->
+    [?_assertEqual(0, kbucket:bucket_index(1)),
+     ?_assertEqual(1, kbucket:bucket_index(2)),
+     ?_assertEqual(1, kbucket:bucket_index(3)),
+     ?_assertEqual(2, kbucket:bucket_index(4)),
+     ?_assertEqual(2, kbucket:bucket_index(5)),
+     ?_assertEqual(2, kbucket:bucket_index(6)),
+     ?_assertEqual(2, kbucket:bucket_index(7)),
+     ?_assertEqual(3, kbucket:bucket_index(8)),
+     ?_assertEqual(7, kbucket:bucket_index(130))].
 
-should_start_a_kbucket_process({KbucketPid, _}) ->
+start_a_kbucket_process({KbucketPid, _}) ->
     [?_assert(erlang:is_pid(KbucketPid))].
 
-should_create_a_bucket_if_not_exists({KbucketPid, _}) ->
+create_a_bucket_if_not_exists({KbucketPid, _}) ->
     ok = kbucket:put(KbucketPid, ?ONE_PEER_1),
 
     [?_assertEqual([?ONE_PEER_1], kbucket:get(KbucketPid, 1))].
 
-should_returns_an_empty_list_for_an_unknown_distance({KbucketPid, _}) ->
+returns_an_empty_list_for_an_unknown_bucket_index({KbucketPid, _}) ->
     [?_assertEqual([], kbucket:get(KbucketPid, 100))].
 
-should_append_a_contacts_with_the_same_bucket_index({KbucketPid, _}) ->
+put_a_contact_with_the_same_bucket_index_to_the_tail({KbucketPid, _}) ->
     put_contacts(KbucketPid, [?ONE_PEER_1, ?ONE_PEER_2]),
 
     [?_assertEqual([?ONE_PEER_1, ?ONE_PEER_2], kbucket:get(KbucketPid, 1))].
 
-should_update_an_already_present_contacts({KbucketPid, _}) ->
+move_to_the_tail_an_already_present_contact({KbucketPid, _}) ->
     put_contacts(KbucketPid, [?ONE_PEER_1, ?ONE_PEER_2]),
 
     ok = kbucket:put(KbucketPid, ?ONE_PEER_1),
 
     [?_assertEqual([?ONE_PEER_2, ?ONE_PEER_1], kbucket:get(KbucketPid, 1))].
 
-ping_the_least_seen_contact_when_a_bucket_is_full_and_remove_if_doesnt_respond({KbucketPid, _}) ->
+ping_the_least_seen_contact_when_a_bucket_is_full_and_remove_if_doesnt_reply({KbucketPid, _}) ->
     meck:expect(peer, check_link,  ?two_any_args(?return(ko))),
     put_contacts(KbucketPid, [?TWO_PEER_1, ?TWO_PEER_2, ?TWO_PEER_3]),
 
@@ -100,7 +103,7 @@ ping_the_least_seen_contact_when_a_bucket_is_full_and_remove_if_doesnt_respond({
     ExpectedBucket = [?TWO_PEER_2, ?TWO_PEER_3, ?TWO_PEER_4],
     [?_assertEqual(ExpectedBucket, kbucket:get(KbucketPid, 2))].
 
-ping_the_least_seen_contact_when_a_bucket_is_full_and_mantain_it_if_respond({KbucketPid, _}) ->
+ping_the_least_seen_contact_when_a_bucket_is_full_and_mantain_it_if_reply({KbucketPid, _}) ->
     put_contacts(KbucketPid, [?TWO_PEER_1, ?TWO_PEER_2, ?TWO_PEER_3]),
     meck:expect(peer, check_link, ?two_any_args(?return(ok))),
 
@@ -118,28 +121,28 @@ do_not_ping_the_least_seen_contact_if_it_is_the_same_to_put_but_update_it({Kbuck
     [?_assertEqual(ExpectedBucket, kbucket:get(KbucketPid, 2)),
      ?_assertEqual(0, meck:num_calls(peer, check_link, [?TWO_PEER_1, Peer]))].
 
-should_returns_the_k_contacts_closest_to_a_key({KbucketPid, _}) ->
+returns_the_k_contacts_closest_to_a_key({KbucketPid, _}) ->
     put_contacts(KbucketPid, [?THIRD_PEER_1, ?TWO_PEER_3, ?TWO_PEER_2, ?TWO_PEER_1]),
 
     ClosestContacts = kbucket:closest_contacts(KbucketPid, 2#1101),
 
     [?_assertEqual([?TWO_PEER_1, ?TWO_PEER_2, ?TWO_PEER_3], ClosestContacts)].
 
-should_fill_the_results_with_other_contacts_if_the_closest_bucket_is_not_full({KbucketPid, _}) ->
+fill_the_results_with_other_contacts_if_the_closest_bucket_is_not_full({KbucketPid, _}) ->
     put_contacts(KbucketPid, [?TWO_PEER_2, ?TWO_PEER_1, ?ONE_PEER_1]),
 
     ClosestContacts = kbucket:closest_contacts(KbucketPid, 2#1010),
 
     [?_assertEqual([?TWO_PEER_2, ?TWO_PEER_1, ?ONE_PEER_1], ClosestContacts)].
 
-should_returns_less_than_k_contacts_if_not_all_available({KbucketPid, _}) ->
+returns_less_than_k_contacts_if_not_all_available({KbucketPid, _}) ->
     put_contacts(KbucketPid, [?TWO_PEER_1, ?ONE_PEER_1]),
 
     ClosestContacts = kbucket:closest_contacts(KbucketPid, 2#1010),
 
     [?_assertEqual([?TWO_PEER_1, ?ONE_PEER_1], ClosestContacts)].
 
-should_search_a_key_within_each_bucket_and_refresh_its_content({KbucketPid, _}) ->
+search_a_key_within_each_bucket_and_refresh_its_content({KbucketPid, _}) ->
     meck:expect(peer, iterative_find_peers, fun always_successful_iterative_find_peers/2),
 
     kbucket:refresh(KbucketPid),
