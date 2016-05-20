@@ -107,6 +107,8 @@ bucket_for(#kbucket{contacts = Contacts, peer = {_, MyId}}, {_, ContactId}) ->
     DestinationBucketIndex = bucket_index(distance(MyId, ContactId)),
     {DestinationBucketIndex, bucket(DestinationBucketIndex, Contacts)}.
 
+put_on([LeastContact | PartialBucket] = Bucket, LeastContact, #kbucket{k = K}) when length(Bucket) =:= K ->
+    PartialBucket ++ [LeastContact];
 put_on([LeastContact | PartialBucket] = Bucket, Contact, #kbucket{k = K, peer = Peer}) when length(Bucket) =:= K ->
     case peer:check_link(LeastContact, Peer) of
         ok -> Bucket;

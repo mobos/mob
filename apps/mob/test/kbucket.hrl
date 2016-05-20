@@ -46,6 +46,7 @@ peer_suite_test_() ->
      ?setup(fun should_update_an_already_present_contacts/1),
      ?setup(fun ping_the_least_seen_contact_when_a_bucket_is_full_and_remove_if_doesnt_respond/1),
      ?setup(fun ping_the_least_seen_contact_when_a_bucket_is_full_and_mantain_it_if_respond/1),
+     ?setup(fun do_not_ping_the_least_seen_contact_if_it_is_the_same_to_put_but_update_it/1),
      ?setup(fun should_returns_an_empty_list_for_an_unknown_distance/1),
      ?setup(fun should_fill_the_results_with_other_contacts_if_the_closest_bucket_is_not_full/1),
      ?setup(fun should_returns_up_to_k_contacts_closest_to_a_key/1),
@@ -105,6 +106,15 @@ ping_the_least_seen_contact_when_a_bucket_is_full_and_mantain_it_if_respond({Kbu
 
     ExpectedBucket = [?TWO_PEER_1, ?TWO_PEER_2, ?TWO_PEER_3],
     [?_assertEqual(ExpectedBucket, kbucket:get(KbucketPid, 2))].
+
+do_not_ping_the_least_seen_contact_if_it_is_the_same_to_put_but_update_it({KbucketPid, Peer}) ->
+    put_contacts(KbucketPid, [?TWO_PEER_1, ?TWO_PEER_2, ?TWO_PEER_3]),
+
+    ok = kbucket:put(KbucketPid, ?TWO_PEER_1),
+
+    ExpectedBucket = [?TWO_PEER_2, ?TWO_PEER_3, ?TWO_PEER_1],
+    [?_assertEqual(ExpectedBucket, kbucket:get(KbucketPid, 2)),
+     ?_assertEqual(0, meck:num_calls(peer, check_link, [?TWO_PEER_1, Peer]))].
 
 should_returns_up_to_k_contacts_closest_to_a_key({KbucketPid, _}) ->
     put_contacts(KbucketPid, [?TWO_PEER_3, ?TWO_PEER_2, ?TWO_PEER_1]),
