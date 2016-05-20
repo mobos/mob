@@ -56,18 +56,16 @@ should_returns_an_empty_list_for_an_unknown_distance({KbucketPid, _}) ->
 
 should_append_a_contacts_with_the_same_bucket_index({KbucketPid, _}) ->
     PeerContact    = {self(), 2#1111}, % distance of 2 from OwningId
-    AnotherContact = {self(), 2#1110}, %distance of 3 from OwningId
+    AnotherContact = {self(), 2#1110}, % distance of 3 from OwningId
 
-    ok = kbucket:put(KbucketPid, PeerContact),
-    ok = kbucket:put(KbucketPid, AnotherContact),
+    put_contacts(KbucketPid, [PeerContact, AnotherContact]),
 
     [?_assertEqual([PeerContact, AnotherContact], kbucket:get(KbucketPid, 1))].
 
 should_update_an_already_present_contacts({KbucketPid, _}) ->
     PeerContact    = {self(), 2#1111},
     AnotherContact = {self(), 2#1110},
-    ok = kbucket:put(KbucketPid, PeerContact),
-    ok = kbucket:put(KbucketPid, AnotherContact),
+    put_contacts(KbucketPid, [PeerContact, AnotherContact]),
 
     ok = kbucket:put(KbucketPid, PeerContact),
 
@@ -81,10 +79,7 @@ ping_the_least_seen_contact_when_a_bucket_is_full_and_remove_if_doesnt_respond({
     FivePeerContact  = {self(), 2#1000},
     SixPeerContact   = {self(), 2#1011},
     SevenPeerContact = {self(), 2#1010},
-
-    ok = kbucket:put(KbucketPid, FourPeerContact),
-    ok = kbucket:put(KbucketPid, FivePeerContact),
-    ok = kbucket:put(KbucketPid,  SixPeerContact),
+    put_contacts(KbucketPid, [FourPeerContact, FivePeerContact, SixPeerContact]),
 
     meck:expect(peer, check_link,  ?two_any_args(?return(ko))),
     ok = kbucket:put(KbucketPid, SevenPeerContact),
@@ -97,10 +92,7 @@ ping_the_least_seen_contact_when_a_bucket_is_full_and_mantain_it_if_respond({Kbu
     FivePeerContact  = {self(), 2#1000},
     SixPeerContact   = {self(), 2#1011},
     SevenPeerContact = {self(), 2#1010},
-
-    ok = kbucket:put(KbucketPid, FourPeerContact),
-    ok = kbucket:put(KbucketPid, FivePeerContact),
-    ok = kbucket:put(KbucketPid,  SixPeerContact),
+    put_contacts(KbucketPid, [FourPeerContact, FivePeerContact, SixPeerContact]),
 
     meck:expect(peer, check_link, ?two_any_args(?return(ok))),
     ok = kbucket:put(KbucketPid, SevenPeerContact),
@@ -112,10 +104,7 @@ should_returns_up_to_k_contacts_closest_to_a_key({KbucketPid, _}) ->
     ThreePeerContact  = {self(), 2#1001},
     TwoPeerContact    = {self(), 2#1000},
     OnePeerContact    = {self(), 2#1011},
-
-    ok = kbucket:put(KbucketPid,    OnePeerContact),
-    ok = kbucket:put(KbucketPid,    TwoPeerContact),
-    ok = kbucket:put(KbucketPid,  ThreePeerContact),
+    put_contacts(KbucketPid, [OnePeerContact, TwoPeerContact, ThreePeerContact]),
 
     [?_assertEqual([OnePeerContact, TwoPeerContact, ThreePeerContact],
                    kbucket:closest_contacts(KbucketPid, 2#1010))].
@@ -124,10 +113,7 @@ should_fill_the_results_with_other_contacts_if_the_closest_bucket_is_not_full({K
     FivePeerContact   = {self(), 2#1111},
     ThreePeerContact  = {self(), 2#1001},
     TwoPeerContact    = {self(), 2#1000},
-
-    ok = kbucket:put(KbucketPid,   TwoPeerContact),
-    ok = kbucket:put(KbucketPid, ThreePeerContact),
-    ok = kbucket:put(KbucketPid,  FivePeerContact),
+    put_contacts(KbucketPid, [TwoPeerContact, ThreePeerContact, FivePeerContact]),
 
     [?_assertEqual([TwoPeerContact, ThreePeerContact, FivePeerContact],
                    kbucket:closest_contacts(KbucketPid, 2#1010))].
@@ -154,3 +140,9 @@ should_search_a_key_within_each_bucket_and_refresh_its_content({KbucketPid, Peer
      ?_assertEqual([OneBucketContact], kbucket:get(KbucketPid, 1)),
      ?_assertEqual([TwoBucketContact], kbucket:get(KbucketPid, 2)),
      ?_assertEqual([ThreeBucketContact], kbucket:get(KbucketPid, 3))].
+
+put_contacts(KbucketPid, []) ->
+    ok;
+put_contacts(KbucketPid, [Contact | Contacts]) ->
+    ok = kbucket:put(KbucketPid, Contact),
+    put_contacts(KbucketPid, Contacts).
