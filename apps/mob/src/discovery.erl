@@ -6,13 +6,29 @@
 -export([announce_spawned_service/3]).
 -export([where_deployed/2]).
 -export([init_net/3]).
+-export([join/2]).
 -export([services/1]).
+-export([init_peer/1]).
 
 %% XXX discovery should doesn't know service
 %% details
 -include("service_supervisor/service.hrl").
 
+-define(KNOWN_PROVIDERS, [bash, docker]).
+
 -define(SERVICES_KEY, services).
+
+join(NodeName, Peer) ->
+    ConnectionResult = remote_mob:connect(NodeName),
+    BootstrapPeer = remote_mob:peer(NodeName),
+
+    UpdatedProviders = discovery:merge_key_sets(Peer, BootstrapPeer, ?KNOWN_PROVIDERS),
+    peer:join(Peer, BootstrapPeer),
+
+    %% XXX: here should we wait to be sure that the joining process is
+    %% completed ?
+    discovery:announce_providers(Peer, UpdatedProviders),
+    ConnectionResult.
 
 get_key_set(Peer, Key) ->
     case peer:iterative_find_value(Peer, Key) of
@@ -67,6 +83,16 @@ where_deployed(Peer, ServiceName) ->
 random_pick(Set) ->
     List = sets:to_list(Set),
     lists:nth(random:uniform(length(List)), List).
+
+
+init_peer(NodeName) ->
+    {ok, PeerConf} = application:get_env(kademlia),
+
+    {k, K} = lists:keyfind(k, 1, PeerConf),
+    {alpha, Alpha} = lists:keyfind(alpha, 1, PeerConf),
+
+    Id = peer:hash_key(NodeName),
+    peer:start(Id, K, Alpha).
 
 -ifdef(TEST).
 -compile([export_all]).

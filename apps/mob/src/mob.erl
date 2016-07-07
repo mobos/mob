@@ -52,17 +52,8 @@ remotely_add_child(ParentName, ChildName) ->
 
 %% Callbacks
 
-init_peer() ->
-    {ok, PeerConf} = application:get_env(kademlia),
-
-    {k, K} = lists:keyfind(k, 1, PeerConf),
-    {alpha, Alpha} = lists:keyfind(alpha, 1, PeerConf),
-
-    Id = peer:hash_key(node_name()),
-    peer:start(Id, K, Alpha).
-
 init([Args]) ->
-    Peer = init_peer(),
+    Peer = discovery:init_peer(node_name()),
     Providers = args_utils:get_as_atom(providers, Args),
     discovery:init_net(Peer, node_name(), Providers),
     {ok, #state{peer = Peer, providers = Providers}}.
@@ -122,15 +113,7 @@ code_change(_OldVsn, State, _Extra) ->
 % Handlers
 
 handle_join(NodeName, State = #state{peer = Peer}) ->
-    ConnectionResult = remote_mob:connect(NodeName),
-    BootstrapPeer = remote_mob:peer(NodeName),
-
-    UpdatedProviders = discovery:merge_key_sets(Peer, BootstrapPeer, ?KNOWN_PROVIDERS),
-    peer:join(Peer, BootstrapPeer),
-
-    %% XXX: here should we wait to be sure that the joining process is
-    %% completed ?
-    discovery:announce_providers(Peer, UpdatedProviders),
+    ConnectionResult = discovery:join(NodeName, Peer),
     {ConnectionResult, State}.
 
 handle_deploy(Service, State) ->
