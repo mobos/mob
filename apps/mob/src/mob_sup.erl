@@ -42,8 +42,8 @@ init([Args]) ->
                     shutdown => brutal_kill,
                     type => worker},
 
-                  #{id => discovery,
-                    start => {discovery, start_link, [Args]},
+                  #{id => mob_dht,
+                    start => {mob_dht, start_link, [Args]},
                     restart => permanent,
                     shutdown => brutal_kill,
                     type => worker},

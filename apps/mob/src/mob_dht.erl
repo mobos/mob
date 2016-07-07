@@ -1,4 +1,4 @@
--module(discovery).
+-module(mob_dht).
 
 -behaviour(gen_server).
 
@@ -22,7 +22,7 @@
      terminate/2,
      code_change/3]).
 
-%% XXX discovery should doesn't know service
+%% XXX mob_dht should doesn't know service
 %% details
 -include("service_supervisor/service.hrl").
 
@@ -32,32 +32,32 @@
 -record(state, {peer, providers}).
 
 start_link(Args) ->
-    gen_server:start_link({local, discovery}, ?MODULE, [Args], []).
+    gen_server:start_link({local, mob_dht}, ?MODULE, [Args], []).
 
 find_available_node(Service) ->
-    gen_server:call(discovery, {find_available_node, Service}).
+    gen_server:call(mob_dht, {find_available_node, Service}).
 
 where_deployed(ServiceName) ->
-    gen_server:call(discovery, {where_deployed, ServiceName}).
+    gen_server:call(mob_dht, {where_deployed, ServiceName}).
 
 join(NodeName) ->
-    gen_server:call(discovery, {join, NodeName}).
+    gen_server:call(mob_dht, {join, NodeName}).
 
 services() ->
-    gen_server:call(discovery, {services}).
+    gen_server:call(mob_dht, {services}).
 
 announce_spawned_service(Service) ->
-    gen_server:call(discovery, {announce_spawned_service, Service}).
+    gen_server:call(mob_dht, {announce_spawned_service, Service}).
 
 peer() ->
-    gen_server:call(discovery, {peer}).
+    gen_server:call(mob_dht, {peer}).
 
 %% Callbacks
 init([Args]) ->
     PeerId = node(),
     Peer = init_peer(PeerId),
     Providers = args_utils:get_as_atom(providers, Args),
-    discovery:init_net(Peer, PeerId, Providers),
+    mob_dht:init_net(Peer, PeerId, Providers),
     {ok, #state{peer = Peer, providers = Providers}}.
 
 
@@ -99,12 +99,12 @@ handle_join(NodeName, Peer) ->
     ConnectionResult = remote_mob:connect(NodeName),
     BootstrapPeer = remote_mob:peer(NodeName),
 
-    UpdatedProviders = discovery:merge_key_sets(Peer, BootstrapPeer, ?KNOWN_PROVIDERS),
+    UpdatedProviders = mob_dht:merge_key_sets(Peer, BootstrapPeer, ?KNOWN_PROVIDERS),
     peer:join(Peer, BootstrapPeer),
 
     %% XXX: here should we wait to be sure that the joining process is
     %% completed ?
-    discovery:announce_providers(Peer, UpdatedProviders),
+    mob_dht:announce_providers(Peer, UpdatedProviders),
     ConnectionResult.
 
 get_key_set(Peer, Key) ->
@@ -172,5 +172,5 @@ init_peer(NodeName) ->
 
 -ifdef(TEST).
 -compile([export_all]).
--include_lib("../test/discovery.hrl").
+-include_lib("../test/mob_dht.hrl").
 -endif.

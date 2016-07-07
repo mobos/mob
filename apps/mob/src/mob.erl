@@ -56,11 +56,11 @@ init([Args]) ->
     {ok, #state{}}.
 
 handle_call(peer, _From, State) ->
-    Reply = discovery:peer(),
+    Reply = mob_dht:peer(),
     {reply, Reply, State};
 
 handle_call({join, NodeName}, _From, State) ->
-    ConnectionResult = discovery:join(NodeName),
+    ConnectionResult = mob_dht:join(NodeName),
     {reply, ConnectionResult, State};
 
 handle_call({deploy, Service}, _From, State) ->
@@ -123,9 +123,9 @@ handle_run(Service, State) ->
     %% when the service is really spawned and proceed with the
     %% announce
     log:notice("[~p] Run request for ~p", [?MODULE, Service#service.name]),
-    Services = discovery:services(),
+    Services = mob_dht:services(),
     service_supervisor:run(Service, Services),
-    discovery:announce_spawned_service(Service),
+    mob_dht:announce_spawned_service(Service),
     State.
 
 handle_is_started(ServiceName, State) ->
@@ -137,21 +137,21 @@ handle_restart(ServiceName, State) ->
     State.
 
 handle_is_remotely_started(ServiceName, State) ->
-    Ret = case discovery:where_deployed(ServiceName) of
+    Ret = case mob_dht:where_deployed(ServiceName) of
         {found, Node} -> remote_mob:is_started(Node, ServiceName);
         _ -> false
     end,
     {Ret, State}.
 
 handle_remotely_restart(ServiceName, State) ->
-    Ret = case discovery:where_deployed(ServiceName) of
+    Ret = case mob_dht:where_deployed(ServiceName) of
               {found, Node} -> remote_mob:restart(Node, ServiceName);
               _ -> not_found
           end,
     {Ret, State}.
 
 handle_remotely_add_child(Parent, Child, State) ->
-   Ret = case discovery:where_deployed(Parent) of
+   Ret = case mob_dht:where_deployed(Parent) of
              {found, Node} -> remote_mob:add_child(Node, Parent, Child);
              _ -> not_found
          end,
@@ -162,9 +162,9 @@ handle_add_child(Parent, Child, State) ->
     State.
 
 do_deploy(ParsedService) ->
-    case discovery:where_deployed(ParsedService#service.name) of
+    case mob_dht:where_deployed(ParsedService#service.name) of
         {error, not_found} ->
-            case discovery:find_available_node(ParsedService) of
+            case mob_dht:find_available_node(ParsedService) of
                 {ok, Node} ->
                     remote_mob:run(Node, ParsedService),
                     Node;
