@@ -42,6 +42,12 @@ init([Args]) ->
                     shutdown => brutal_kill,
                     type => worker},
 
+                  #{id => discovery,
+                    start => {discovery, start_link, [Args]},
+                    restart => permanent,
+                    shutdown => brutal_kill,
+                    type => worker},
+
                   #{id => service_supervisor,
                     start => {service_supervisor, start_link, []},
                     restart => permanent,

@@ -22,7 +22,7 @@
 
 -include("service_supervisor/service.hrl").
 
--record(state, {peer, providers}).
+-record(state, {}).
 
 -define(KNOWN_PROVIDERS, [bash, docker]).
 
@@ -53,17 +53,15 @@ remotely_add_child(ParentName, ChildName) ->
 %% Callbacks
 
 init([Args]) ->
-    Peer = discovery:init_peer(node_name()),
-    Providers = args_utils:get_as_atom(providers, Args),
-    discovery:init_net(Peer, node_name(), Providers),
-    {ok, #state{peer = Peer, providers = Providers}}.
+    {ok, #state{}}.
 
-handle_call(peer, _From, State = #state{peer = Peer}) ->
-    {reply, Peer, State};
+handle_call(peer, _From, State) ->
+    Reply = discovery:peer(),
+    {reply, Reply, State};
 
 handle_call({join, NodeName}, _From, State) ->
-    {Reply, State} = handle_join(NodeName, State),
-    {reply, Reply, State};
+    ConnectionResult = discovery:join(NodeName),
+    {reply, ConnectionResult, State};
 
 handle_call({deploy, Service}, _From, State) ->
     {Reply, NewState} = handle_deploy(Service, State),
@@ -112,26 +110,22 @@ code_change(_OldVsn, State, _Extra) ->
 
 % Handlers
 
-handle_join(NodeName, State = #state{peer = Peer}) ->
-    ConnectionResult = discovery:join(NodeName, Peer),
-    {ConnectionResult, State}.
-
 handle_deploy(Service, State) ->
     Reply = case service_parser:parse(Service) of
-                {ok, ParsedService} -> do_deploy(ParsedService, State);
+                {ok, ParsedService} -> do_deploy(ParsedService);
                 {error, Error} -> Error
             end,
     {Reply, State}.
 
-handle_run(Service, State = #state{peer = Peer}) ->
+handle_run(Service, State) ->
     %% XXX Currently the service is annunced *BEFORE* the service
     %% is really spawned. To be sure we should notify this module
     %% when the service is really spawned and proceed with the
     %% announce
     log:notice("[~p] Run request for ~p", [?MODULE, Service#service.name]),
-    Services = discovery:services(Peer),
+    Services = discovery:services(),
     service_supervisor:run(Service, Services),
-    discovery:announce_spawned_service(Peer, Service, node_name()),
+    discovery:announce_spawned_service(Service),
     State.
 
 handle_is_started(ServiceName, State) ->
@@ -142,22 +136,22 @@ handle_restart(ServiceName, State) ->
     service_supervisor:restart(ServiceName),
     State.
 
-handle_is_remotely_started(ServiceName, State = #state{peer = Peer}) ->
-    Ret = case discovery:where_deployed(Peer, ServiceName) of
+handle_is_remotely_started(ServiceName, State) ->
+    Ret = case discovery:where_deployed(ServiceName) of
         {found, Node} -> remote_mob:is_started(Node, ServiceName);
         _ -> false
     end,
     {Ret, State}.
 
-handle_remotely_restart(ServiceName, State = #state{peer = Peer}) ->
-    Ret = case discovery:where_deployed(Peer, ServiceName) of
+handle_remotely_restart(ServiceName, State) ->
+    Ret = case discovery:where_deployed(ServiceName) of
               {found, Node} -> remote_mob:restart(Node, ServiceName);
               _ -> not_found
           end,
     {Ret, State}.
 
-handle_remotely_add_child(Parent, Child, State = #state{peer = Peer}) ->
-   Ret = case discovery:where_deployed(Peer, Parent) of
+handle_remotely_add_child(Parent, Child, State) ->
+   Ret = case discovery:where_deployed(Parent) of
              {found, Node} -> remote_mob:add_child(Node, Parent, Child);
              _ -> not_found
          end,
@@ -167,10 +161,10 @@ handle_add_child(Parent, Child, State) ->
     service_supervisor:add_child(Parent, Child),
     State.
 
-do_deploy(ParsedService, #state{peer = Peer}) ->
-    case discovery:where_deployed(Peer, ParsedService#service.name) of
+do_deploy(ParsedService) ->
+    case discovery:where_deployed(ParsedService#service.name) of
         {error, not_found} ->
-            case discovery:find_available_node(Peer, ParsedService) of
+            case discovery:find_available_node(ParsedService) of
                 {ok, Node} ->
                     remote_mob:run(Node, ParsedService),
                     Node;

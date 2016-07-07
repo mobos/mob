@@ -1,24 +1,101 @@
 -module(discovery).
 
+-behaviour(gen_server).
+
+-export([start_link/1]).
 -export([merge_key_sets/3]).
--export([find_available_node/2]).
+-export([find_available_node/1]).
 -export([announce_providers/2]).
--export([announce_spawned_service/3]).
--export([where_deployed/2]).
+-export([announce_spawned_service/1]).
+-export([where_deployed/1]).
 -export([init_net/3]).
--export([join/2]).
--export([services/1]).
+-export([join/1]).
+-export([services/0]).
 -export([init_peer/1]).
+-export([peer/0]).
+
+%% gen_server callbacks
+-export([init/1,
+     handle_call/3,
+     handle_cast/2,
+     handle_info/2,
+     terminate/2,
+     code_change/3]).
 
 %% XXX discovery should doesn't know service
 %% details
 -include("service_supervisor/service.hrl").
 
 -define(KNOWN_PROVIDERS, [bash, docker]).
-
 -define(SERVICES_KEY, services).
 
-join(NodeName, Peer) ->
+-record(state, {peer, providers}).
+
+start_link(Args) ->
+    gen_server:start_link({local, discovery}, ?MODULE, [Args], []).
+
+find_available_node(Service) ->
+    gen_server:call(discovery, {find_available_node, Service}).
+
+where_deployed(ServiceName) ->
+    gen_server:call(discovery, {where_deployed, ServiceName}).
+
+join(NodeName) ->
+    gen_server:call(discovery, {join, NodeName}).
+
+services() ->
+    gen_server:call(discovery, {services}).
+
+announce_spawned_service(Service) ->
+    gen_server:call(discovery, {announce_spawned_service, Service}).
+
+peer() ->
+    gen_server:call(discovery, {peer}).
+
+%% Callbacks
+init([Args]) ->
+    PeerId = node(),
+    Peer = init_peer(PeerId),
+    Providers = args_utils:get_as_atom(providers, Args),
+    discovery:init_net(Peer, PeerId, Providers),
+    {ok, #state{peer = Peer, providers = Providers}}.
+
+
+handle_call({peer}, _From, State = #state{peer = Peer}) ->
+    Reply = Peer,
+    {reply, Reply, State};
+handle_call({services}, _From, State = #state{peer = Peer}) ->
+    Reply = handle_services(Peer),
+    {reply, Reply, State};
+handle_call({announce_spawned_service, Service}, _From, State = #state{peer = Peer}) ->
+    Reply = handle_announce_spawned_service(Service, Peer),
+    {reply, Reply, State};
+handle_call({join, NodeName}, _From, State = #state{peer = Peer}) ->
+    Reply = handle_join(NodeName, Peer),
+    {reply, Reply, State};
+handle_call({where_deployed, ServiceName}, _From, State = #state{peer = Peer}) ->
+    Reply = handle_where_deployed(ServiceName, Peer),
+    {reply, Reply, State};
+handle_call({find_available_node, Service}, _From, State = #state{peer = Peer}) ->
+    Reply = handle_find_available_node(Service, Peer),
+    {reply, Reply, State};
+handle_call(_Request, _From, State) ->
+    {reply, ok, State}.
+
+handle_cast(_Msg, State) ->
+    {noreply, State}.
+
+handle_info(_Info, State) ->
+    {noreply, State}.
+
+terminate(_Reason, _State) ->
+    ok.
+
+code_change(_OldVsn, State, _Extra) ->
+    {ok, State}.
+
+
+handle_join(NodeName, Peer) ->
     ConnectionResult = remote_mob:connect(NodeName),
     BootstrapPeer = remote_mob:peer(NodeName),
 
@@ -32,8 +109,8 @@ join(NodeName, Peer) ->
 
 get_key_set(Peer, Key) ->
     case peer:iterative_find_value(Peer, Key) of
-        {found, Value} -> Value;
-        _ -> sets:new()
+    {found, Value} -> Value;
+    _ -> sets:new()
     end.
 
 merge_key_set(PeerA, PeerB, Key) ->
@@ -49,16 +126,14 @@ init_net(Peer, Node, Providers) ->
     announce_providers(Peer, [{ProviderName, NodeSet} || ProviderName <- Providers]),
     peer:iterative_store(Peer, {?SERVICES_KEY, sets:new()}).
 
-services(Peer) ->
+handle_services(Peer) ->
     {found, Services} = peer:iterative_find_value(Peer, ?SERVICES_KEY),
     sets:to_list(Services).
 
-find_available_node(Peer, Service) ->
+handle_find_available_node(Service, Peer) ->
     case peer:iterative_find_value(Peer, Service#service.provider) of
-        {found, Nodes} ->
-            {ok, random_pick(Nodes)};
-        _ ->
-            {error, no_nodes}
+        {found, Nodes} -> {ok, random_pick(Nodes)};
+        _ ->              {error, no_nodes}
     end.
 
 announce_providers(_Peer, []) -> ok;
@@ -66,7 +141,8 @@ announce_providers(Peer, [{ProviderName, Nodes} | Providers]) ->
     peer:iterative_store(Peer, {ProviderName, Nodes}),
     announce_providers(Peer, Providers).
 
-announce_spawned_service(Peer, Service, OwningNode) ->
+handle_announce_spawned_service(Service, Peer) ->
+    OwningNode = node(),
     ServiceName = Service#service.name,
     peer:iterative_store(Peer, {ServiceName, OwningNode}),
     %% XXX: this "should" never fail
@@ -74,10 +150,10 @@ announce_spawned_service(Peer, Service, OwningNode) ->
     UpdatedServices = sets:add_element(Service, Services),
     peer:iterative_store(Peer, {?SERVICES_KEY, UpdatedServices}).
 
-where_deployed(Peer, ServiceName) ->
+handle_where_deployed(ServiceName, Peer) ->
     case peer:iterative_find_value(Peer, ServiceName) of
         {found, Node} -> {found, Node};
-        _ -> {error, not_found}
+        _             -> {error, not_found}
     end.
 
 random_pick(Set) ->

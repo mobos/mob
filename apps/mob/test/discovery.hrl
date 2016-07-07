@@ -8,7 +8,7 @@ should_try_to_find_an_available_node_for_a_service_test() ->
 
     StoredNodes = sets:from_list([FakeNode, FakeNode]),
     meck:expect(peer, iterative_find_value, fun(_, _) -> {found, StoredNodes} end),
-    {ok, Node} = discovery:find_available_node(FakePeer, Service),
+    {ok, Node} = discovery:handle_find_available_node(Service, FakePeer),
 
     ?assertEqual(1, meck:num_calls(peer, iterative_find_value, [FakePeer, Service#service.provider])),
     ?assertEqual(FakeNode, Node),
@@ -24,7 +24,7 @@ should_return_an_error_if_no_nodes_are_found_test() ->
 
     StoredNodes = sets:from_list([FakeNode, FakeNode]),
     meck:expect(peer, iterative_find_value, fun(_, _) -> StoredNodes end),
-    {error, Error} = discovery:find_available_node(FakePeer, Service),
+    {error, Error} = discovery:handle_find_available_node(Service, FakePeer),
 
     ?assertEqual(1, meck:num_calls(peer, iterative_find_value, [FakePeer, Service#service.provider])),
     ?assertEqual(Error, no_nodes),
@@ -39,7 +39,7 @@ should_find_where_is_deployed_a_service_test() ->
     ServiceName = my_service,
 
     meck:expect(peer, iterative_find_value, fun(_Peer, _Key) -> {found, Node} end),
-    Result = discovery:where_deployed(FakePeer, ServiceName),
+    Result = discovery:handle_where_deployed(ServiceName, FakePeer),
 
     ?assertEqual(1, meck:num_calls(peer, iterative_find_value, [FakePeer, ServiceName])),
     ?assertEqual({found, Node}, Result),
@@ -57,7 +57,7 @@ should_announce_a_deployed_service_test() ->
 
     meck:expect(peer, iterative_store, fun(_Peer, {_Key, _Value}) -> ok end),
     meck:expect(peer, iterative_find_value, fun(_Peer, _Key) -> {found, Services} end),
-    discovery:announce_spawned_service(FakePeer, Service, FakeNode),
+    discovery:handle_announce_spawned_service(Service, FakePeer),
 
     ?assertEqual(1, meck:num_calls(peer, iterative_find_value, [FakePeer, services])),
     ?assertEqual(1, meck:num_calls(peer, iterative_store, [FakePeer, {services, UpdatedServices}])),
