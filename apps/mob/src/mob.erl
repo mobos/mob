@@ -3,7 +3,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/1]).
+-export([start_link/0]).
 -export([join/1]).
 -export([run/1]).
 -export([remotely_restart/1]).
@@ -24,10 +24,8 @@
 
 -record(state, {}).
 
--define(KNOWN_PROVIDERS, [bash, docker]).
-
-start_link(Args) ->
-    gen_server:start_link({local, mob}, ?MODULE, [Args], []).
+start_link() ->
+    gen_server:start_link({local, mob}, ?MODULE, [], []).
 
 deploy(Service) ->
     gen_server:call(mob, {deploy, Service}).
@@ -52,7 +50,7 @@ remotely_add_child(ParentName, ChildName) ->
 
 %% Callbacks
 
-init([Args]) ->
+init([]) ->
     {ok, #state{}}.
 
 handle_call(peer, _From, State) ->

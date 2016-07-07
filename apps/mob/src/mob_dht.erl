@@ -27,9 +27,10 @@
 -include("service_supervisor/service.hrl").
 
 -define(KNOWN_PROVIDERS, [bash, docker]).
+
 -define(SERVICES_KEY, services).
 
--record(state, {peer, providers}).
+-record(state, {peer}).
 
 start_link(Args) ->
     gen_server:start_link({local, mob_dht}, ?MODULE, [Args], []).
@@ -58,8 +59,7 @@ init([Args]) ->
     Peer = init_peer(PeerId),
     Providers = args_utils:get_as_atom(providers, Args),
     mob_dht:init_net(Peer, PeerId, Providers),
-    {ok, #state{peer = Peer, providers = Providers}}.
-
+    {ok, #state{peer = Peer}}.
 
 handle_call({peer}, _From, State = #state{peer = Peer}) ->
     Reply = Peer,
