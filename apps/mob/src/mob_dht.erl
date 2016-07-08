@@ -128,7 +128,7 @@ init_net(Peer, Node, Providers) ->
 
 handle_services(Peer) ->
     {found, Services} = peer:iterative_find_value(Peer, ?SERVICES_KEY),
-    sets:to_list(Services).
+    Services.
 
 handle_find_available_node(Service, Peer) ->
     case peer:iterative_find_value(Peer, Service#service.provider) of
@@ -143,11 +143,11 @@ announce_providers(Peer, [{ProviderName, Nodes} | Providers]) ->
 
 handle_announce_spawned_service(Service, Peer) ->
     ServiceName = Service#service.name,
-    peer:iterative_store(Peer, {ServiceName, ?NODE_NAME}),
-    %% XXX: this "should" never fail
-    {found, Services} = peer:iterative_find_value(Peer, services),
-    UpdatedServices = sets:add_element(Service, Services),
-    peer:iterative_store(Peer, {?SERVICES_KEY, UpdatedServices}).
+    AllServices = handle_services(Peer),
+    UpdatedServices = sets:add_element(Service, AllServices),
+
+    peer:iterative_store(Peer, {?SERVICES_KEY, UpdatedServices}),
+    peer:iterative_store(Peer, {ServiceName, ?NODE_NAME}).
 
 handle_where_deployed(ServiceName, Peer) ->
     case peer:iterative_find_value(Peer, ServiceName) of

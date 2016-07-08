@@ -122,7 +122,8 @@ handle_run(Service, State) ->
     %% announce
     log:notice("[~p] Run request for ~p", [?MODULE, Service#service.name]),
     Services = mob_dht:services(),
-    service_supervisor:run(Service, Services),
+    ServicesList = sets:to_list(Services),
+    service_supervisor:run(Service, ServicesList),
     mob_dht:announce_spawned_service(Service),
     State.
 
