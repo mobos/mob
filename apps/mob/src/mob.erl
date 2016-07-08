@@ -124,7 +124,7 @@ handle_run(Service, State) ->
     Services = mob_dht:services(),
     ServicesList = sets:to_list(Services),
     service_supervisor:run(Service, ServicesList),
-    mob_dht:announce_spawned_service(Service),
+    mob_dht:announce_spawned_service(Service, node_name()),
     State.
 
 handle_is_started(ServiceName, State) ->

@@ -6,7 +6,7 @@
 -export([merge_key_sets/3]).
 -export([find_available_node/1]).
 -export([announce_providers/2]).
--export([announce_spawned_service/1]).
+-export([announce_spawned_service/2]).
 -export([where_deployed/1]).
 -export([init_net/3]).
 -export([join/1]).
@@ -48,8 +48,8 @@ join(NodeName) ->
 services() ->
     gen_server:call(mob_dht, {services}).
 
-announce_spawned_service(Service) ->
-    gen_server:call(mob_dht, {announce_spawned_service, Service}).
+announce_spawned_service(Service, NodeName) ->
+    gen_server:call(mob_dht, {announce_spawned_service, Service, NodeName}).
 
 peer() ->
     gen_server:call(mob_dht, {peer}).
@@ -67,8 +67,8 @@ handle_call({peer}, _From, State = #state{peer = Peer}) ->
 handle_call({services}, _From, State = #state{peer = Peer}) ->
     Reply = handle_services(Peer),
     {reply, Reply, State};
-handle_call({announce_spawned_service, Service}, _From, State = #state{peer = Peer}) ->
-    Reply = handle_announce_spawned_service(Service, Peer),
+handle_call({announce_spawned_service, Service, NodeName}, _From, State = #state{peer = Peer}) ->
+    Reply = handle_announce_spawned_service(Service, NodeName, Peer),
     {reply, Reply, State};
 handle_call({join, NodeName}, _From, State = #state{peer = Peer}) ->
     Reply = handle_join(NodeName, Peer),
@@ -141,13 +141,13 @@ announce_providers(Peer, [{ProviderName, Nodes} | Providers]) ->
     peer:iterative_store(Peer, {ProviderName, Nodes}),
     announce_providers(Peer, Providers).
 
-handle_announce_spawned_service(Service, Peer) ->
+handle_announce_spawned_service(Service, NodeName, Peer) ->
     ServiceName = Service#service.name,
     AllServices = handle_services(Peer),
     UpdatedServices = sets:add_element(Service, AllServices),
 
     peer:iterative_store(Peer, {?SERVICES_KEY, UpdatedServices}),
-    peer:iterative_store(Peer, {ServiceName, ?NODE_NAME}).
+    peer:iterative_store(Peer, {ServiceName, NodeName}).
 
 handle_where_deployed(ServiceName, Peer) ->
     case peer:iterative_find_value(Peer, ServiceName) of
