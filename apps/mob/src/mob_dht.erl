@@ -29,6 +29,7 @@
 -define(KNOWN_PROVIDERS, [bash, docker]).
 
 -define(SERVICES_KEY, services).
+-define(NODE_NAME, node()).
 
 -record(state, {peer}).
 
@@ -55,10 +56,9 @@ peer() ->
 
 %% Callbacks
 init([Args]) ->
-    PeerId = node(),
-    Peer = init_peer(PeerId),
+    Peer = init_peer(?NODE_NAME),
     Providers = args_utils:get_as_atom(providers, Args),
-    mob_dht:init_net(Peer, PeerId, Providers),
+    mob_dht:init_net(Peer, ?NODE_NAME, Providers),
     {ok, #state{peer = Peer}}.
 
 handle_call({peer}, _From, State = #state{peer = Peer}) ->
@@ -142,9 +142,8 @@ announce_providers(Peer, [{ProviderName, Nodes} | Providers]) ->
     announce_providers(Peer, Providers).
 
 handle_announce_spawned_service(Service, Peer) ->
-    OwningNode = node(),
     ServiceName = Service#service.name,
-    peer:iterative_store(Peer, {ServiceName, OwningNode}),
+    peer:iterative_store(Peer, {ServiceName, ?NODE_NAME}),
     %% XXX: this "should" never fail
     {found, Services} = peer:iterative_find_value(Peer, services),
     UpdatedServices = sets:add_element(Service, Services),
