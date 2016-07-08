@@ -1,48 +1,44 @@
 -include_lib("eunit/include/eunit.hrl").
 
-should_try_to_find_an_available_node_for_a_service_test() ->
+-define(SERVICE, #service{name = 'my_service', provider = 'bash', params = #{}}).
+-define(NODES_PROVIDING_BASH, sets:from_list(['0000@fakenode', '0000@fakenode'])).
+-define(FAKE_PEER, {self(), 0}).
+-define(FAKE_NODE, '0000@fakenode').
+
+finds_an_available_node_for_a_service_test() ->
     meck:new(peer, [non_strict]),
-    FakePeer = fake_peer,
-    FakeNode = fake_node,
-    Service = #service{name = 'my_service', provider = 'bash', params = #{"command" => "a command"}},
 
-    StoredNodes = sets:from_list([FakeNode, FakeNode]),
-    meck:expect(peer, iterative_find_value, fun(_, _) -> {found, StoredNodes} end),
-    {ok, Node} = mob_dht:handle_find_available_node(Service, FakePeer),
+    meck:expect(peer, iterative_find_value, fun(_, _) -> {found, ?NODES_PROVIDING_BASH} end),
 
-    ?assertEqual(1, meck:num_calls(peer, iterative_find_value, [FakePeer, Service#service.provider])),
-    ?assertEqual(FakeNode, Node),
+    {ok, Node} = mob_dht:handle_find_available_node(?SERVICE, ?FAKE_PEER),
+
+    ?assertEqual(1, meck:num_calls(peer, iterative_find_value, [?FAKE_PEER, ?SERVICE#service.provider])),
+    ?assertEqual(?FAKE_NODE, Node),
 
     meck:validate(peer),
     meck:unload(peer).
 
-should_return_an_error_if_no_nodes_are_found_test() ->
+returns_an_error_if_no_nodes_are_found_for_a_service_test() ->
     meck:new(peer, [non_strict]),
-    FakePeer = fake_peer,
-    FakeNode = fake_node,
-    Service = #service{name = 'my_service', provider = 'bash', params = #{"command" => "a command"}},
 
-    StoredNodes = sets:from_list([FakeNode, FakeNode]),
-    meck:expect(peer, iterative_find_value, fun(_, _) -> StoredNodes end),
-    {error, Error} = mob_dht:handle_find_available_node(Service, FakePeer),
+    meck:expect(peer, iterative_find_value, fun(_, _) -> [?FAKE_PEER] end),
+    {error, Error} = mob_dht:handle_find_available_node(?SERVICE, ?FAKE_PEER),
 
-    ?assertEqual(1, meck:num_calls(peer, iterative_find_value, [FakePeer, Service#service.provider])),
+    ?assertEqual(1, meck:num_calls(peer, iterative_find_value, [?FAKE_PEER, ?SERVICE#service.provider])),
     ?assertEqual(Error, no_nodes),
 
     meck:validate(peer),
     meck:unload(peer).
 
-should_find_where_is_deployed_a_service_test() ->
+finds_where_is_deployed_a_service_test() ->
     meck:new(peer, [non_strict]),
-    FakePeer = self(),
-    Node = node(),
-    ServiceName = my_service,
 
-    meck:expect(peer, iterative_find_value, fun(_Peer, _Key) -> {found, Node} end),
-    Result = mob_dht:handle_where_deployed(ServiceName, FakePeer),
+    meck:expect(peer, iterative_find_value, fun(_Peer, _Key) -> {found, ?FAKE_NODE} end),
 
-    ?assertEqual(1, meck:num_calls(peer, iterative_find_value, [FakePeer, ServiceName])),
-    ?assertEqual({found, Node}, Result),
+    {found, Node} = mob_dht:handle_where_deployed(?SERVICE#service.name, ?FAKE_PEER),
+
+    ?assertEqual(1, meck:num_calls(peer, iterative_find_value, [?FAKE_PEER, ?SERVICE#service.name])),
+    ?assertEqual(?FAKE_NODE, Node),
 
     meck:validate(peer),
     meck:unload(peer).
