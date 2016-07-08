@@ -43,6 +43,19 @@ finds_where_is_deployed_a_service_test() ->
     meck:validate(peer),
     meck:unload(peer).
 
+returns_an_error_if_a_service_is_not_deployed_test() ->
+    meck:new(peer, [non_strict]),
+
+    meck:expect(peer, iterative_find_value, fun(_Peer, _Key) -> [?FAKE_PEER] end),
+
+    {error, Error} = mob_dht:handle_where_deployed(?SERVICE#service.name, ?FAKE_PEER),
+
+    ?assertEqual(1, meck:num_calls(peer, iterative_find_value, [?FAKE_PEER, ?SERVICE#service.name])),
+    ?assertEqual(not_found, Error),
+
+    meck:validate(peer),
+    meck:unload(peer).
+
 should_announce_a_deployed_service_test() ->
     meck:new(peer, [non_strict]),
     FakePeer = self(),
