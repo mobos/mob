@@ -3,15 +3,11 @@
 -behaviour(gen_server).
 
 -export([start_link/1]).
--export([merge_key_sets/3]).
 -export([find_available_node/1]).
--export([announce_providers/2]).
 -export([announce_spawned_service/2]).
 -export([where_deployed/1]).
--export([init_net/3]).
 -export([join/1]).
 -export([services/0]).
--export([init_peer/1]).
 -export([peer/0]).
 
 %% gen_server callbacks
@@ -58,7 +54,7 @@ peer() ->
 init([Args]) ->
     Peer = init_peer(?NODE_NAME),
     Providers = args_utils:get_as_atom(providers, Args),
-    mob_dht:init_net(Peer, ?NODE_NAME, Providers),
+    init_net(Peer, ?NODE_NAME, Providers),
     {ok, #state{peer = Peer}}.
 
 handle_call({peer}, _From, State = #state{peer = Peer}) ->
@@ -94,32 +90,19 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
+%% Handlers
 
 handle_join(NodeName, Peer) ->
     ConnectionResult = remote_mob:connect(NodeName),
     BootstrapPeer = remote_mob:peer(NodeName),
 
-    UpdatedProviders = mob_dht:merge_key_sets(Peer, BootstrapPeer, ?KNOWN_PROVIDERS),
+    UpdatedProviders = merge_key_sets(Peer, BootstrapPeer, ?KNOWN_PROVIDERS),
     peer:join(Peer, BootstrapPeer),
 
     %% XXX: here should we wait to be sure that the joining process is
     %% completed ?
-    mob_dht:announce_providers(Peer, UpdatedProviders),
+    announce_providers(Peer, UpdatedProviders),
     ConnectionResult.
-
-get_key_set(Peer, Key) ->
-    case peer:iterative_find_value(Peer, Key) of
-    {found, Value} -> Value;
-    _ -> sets:new()
-    end.
-
-merge_key_set(PeerA, PeerB, Key) ->
-    SetA = get_key_set(PeerA, Key),
-    SetB = get_key_set(PeerB, Key),
-    sets:union(SetA, SetB).
-
-merge_key_sets(PeerA, PeerB, Keys) ->
-    [{Key, merge_key_set(PeerA, PeerB, Key)} || Key <- Keys].
 
 init_net(Peer, Node, Providers) ->
     NodeSet = sets:add_element(Node, sets:new()),
@@ -135,11 +118,6 @@ handle_find_available_node(Service, Peer) ->
         {found, Nodes} -> {ok, random_pick(Nodes)};
         _ ->              {error, no_nodes}
     end.
-
-announce_providers(_Peer, []) -> ok;
-announce_providers(Peer, [{ProviderName, Nodes} | Providers]) ->
-    peer:iterative_store(Peer, {ProviderName, Nodes}),
-    announce_providers(Peer, Providers).
 
 handle_announce_spawned_service(Service, NodeName, Peer) ->
     ServiceName = Service#service.name,
@@ -159,7 +137,6 @@ random_pick(Set) ->
     List = sets:to_list(Set),
     lists:nth(random:uniform(length(List)), List).
 
-
 init_peer(NodeName) ->
     {ok, PeerConf} = application:get_env(kademlia),
 
@@ -168,6 +145,25 @@ init_peer(NodeName) ->
 
     Id = peer:hash_key(NodeName),
     peer:start(Id, K, Alpha).
+
+announce_providers(_Peer, []) -> ok;
+announce_providers(Peer, [{ProviderName, Nodes} | Providers]) ->
+    peer:iterative_store(Peer, {ProviderName, Nodes}),
+    announce_providers(Peer, Providers).
+
+get_key_set(Peer, Key) ->
+    case peer:iterative_find_value(Peer, Key) of
+    {found, Value} -> Value;
+    _ -> sets:new()
+    end.
+
+merge_key_set(PeerA, PeerB, Key) ->
+    SetA = get_key_set(PeerA, Key),
+    SetB = get_key_set(PeerB, Key),
+    sets:union(SetA, SetB).
+
+merge_key_sets(PeerA, PeerB, Keys) ->
+    [{Key, merge_key_set(PeerA, PeerB, Key)} || Key <- Keys].
 
 -ifdef(TEST).
 -compile([export_all]).
