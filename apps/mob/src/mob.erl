@@ -110,7 +110,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 handle_deploy(Service, State) ->
     Reply = case service_parser:parse(Service) of
-                {ok, ParsedService} -> do_deploy(ParsedService);
+                {ok, ParsedService} -> mob_router:deploy(ParsedService);
                 {error, Error} -> Error
             end,
     {Reply, State}.
@@ -159,18 +159,6 @@ handle_remotely_add_child(Parent, Child, State) ->
 handle_add_child(Parent, Child, State) ->
     service_supervisor:add_child(Parent, Child),
     State.
-
-do_deploy(ParsedService) ->
-    case mob_dht:where_deployed(ParsedService#service.name) of
-        {error, not_found} ->
-            case mob_dht:find_available_node(ParsedService) of
-                {ok, Node} ->
-                    remote_mob:run(Node, ParsedService),
-                    Node;
-                {error, Error} -> Error
-            end;
-        {found, _Node} -> already_deployed
-    end.
 
 -ifdef(TEST).
 -compile([export_all]).
