@@ -77,17 +77,17 @@ announce_a_deployed_service_test() ->
 
 should_init_the_information_on_the_network_test() ->
     meck:new(peer, [non_strict]),
-    FakePeer = self(),
-    FakeNode = self(),
-    EmptyServices = sets:new(),
-    Nodes = sets:add_element(FakeNode, sets:new()),
+
+    meck:expect(peer, iterative_store, fun(_, _) -> ok end),
     Providers = ['bash'],
 
-    meck:expect(peer, iterative_store, fun(_Peer, {_Key, _Value}) -> ok end),
+    ServicesItem = {services, sets:new()},
+    ProviderItem = {bash, sets:from_list([?FAKE_NODE])},
 
-    mob_dht:init_net(FakePeer, FakeNode, Providers),
+    mob_dht:init_net(?FAKE_PEER, ?FAKE_NODE, Providers),
 
-    ?assertEqual(1, meck:num_calls(peer, iterative_store, [FakePeer, {services, EmptyServices}])),
-    ?assertEqual(1, meck:num_calls(peer, iterative_store, [FakePeer, {bash, Nodes}])),
+    ?assertEqual(1, meck:num_calls(peer, iterative_store, [?FAKE_PEER, ServicesItem])),
+    ?assertEqual(1, meck:num_calls(peer, iterative_store, [?FAKE_PEER, ProviderItem])),
+
     meck:validate(peer),
     meck:unload(peer).
