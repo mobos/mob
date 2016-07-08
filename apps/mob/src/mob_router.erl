@@ -36,3 +36,8 @@ is_started(ServiceName) ->
         {found, Node} -> remote_mob:is_started(Node, ServiceName);
         _ -> false
     end.
+
+-ifdef(TEST).
+-compile([export_all]).
+-include_lib("../test/mob_router.hrl").
+-endif.
