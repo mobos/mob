@@ -136,24 +136,15 @@ handle_restart(ServiceName, State) ->
     State.
 
 handle_is_remotely_started(ServiceName, State) ->
-    Ret = case mob_dht:where_deployed(ServiceName) of
-        {found, Node} -> remote_mob:is_started(Node, ServiceName);
-        _ -> false
-    end,
+    Ret = mob_router:is_started(ServiceName),
     {Ret, State}.
 
 handle_remotely_restart(ServiceName, State) ->
-    Ret = case mob_dht:where_deployed(ServiceName) of
-              {found, Node} -> remote_mob:restart(Node, ServiceName);
-              _ -> not_found
-          end,
+    Ret = mob_router:restart(ServiceName),
     {Ret, State}.
 
 handle_remotely_add_child(Parent, Child, State) ->
-   Ret = case mob_dht:where_deployed(Parent) of
-             {found, Node} -> remote_mob:add_child(Node, Parent, Child);
-             _ -> not_found
-         end,
+    Ret = mob_router:add_child(Parent, Child),
    {Ret, State}.
 
 handle_add_child(Parent, Child, State) ->

@@ -1,6 +1,9 @@
 -module(mob_router).
 
 -export([deploy/1]).
+-export([restart/1]).
+-export([add_child/2]).
+-export([is_started/1]).
 
 -include("service_supervisor/service.hrl").
 
@@ -16,3 +19,20 @@ deploy(ParsedService) ->
         {found, _Node} -> already_deployed
     end.
 
+restart(ServiceName) ->
+    case mob_dht:where_deployed(ServiceName) of
+        {found, Node} -> remote_mob:restart(Node, ServiceName);
+        _             -> not_found
+    end.
+
+add_child(ParentName, ChildName) ->
+    case mob_dht:where_deployed(ParentName) of
+        {found, Node} -> remote_mob:add_child(Node, ParentName, ChildName);
+        _ -> not_found
+    end.
+
+is_started(ServiceName) ->
+    case mob_dht:where_deployed(ServiceName) of
+        {found, Node} -> remote_mob:is_started(Node, ServiceName);
+        _ -> false
+    end.
