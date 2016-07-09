@@ -19,15 +19,12 @@ should_find_the_correct_node_and_deploy_a_service_test() ->
     meck:expect(mob_dht, find_available_node, fun(_) -> {ok, FakeNode} end),
     meck:expect(remote_mob, run, fun(_, _) -> ok end),
 
-    State = #state{},
-
-    {Reply, NewState} = mob:handle_deploy(Service, State),
+    Reply = mob:handle_deploy(Service),
 
     ?assertEqual(1, meck:num_calls(service_parser, parse, [Service])),
     ?assertEqual(1, meck:num_calls(mob_dht, where_deployed, [ParsedService#service.name])),
     ?assertEqual(1, meck:num_calls(mob_dht, find_available_node, [ParsedService])),
     ?assertEqual(1, meck:num_calls(remote_mob, run, [FakeNode, ParsedService])),
-    ?assertEqual(State, NewState),
     ?assertEqual(FakeNode, Reply),
 
     stop_mocks([service_parser, mob_dht, remote_mob]).
@@ -52,12 +49,10 @@ should_not_deploy_an_already_deployed_service_test() ->
     meck:expect(service_parser, parse, fun(_) -> {ok, ParsedService} end),
     meck:expect(mob_dht, where_deployed, fun(_) -> {found, FakeNode} end),
 
-    State = #state{},
-    {Reply, NewState} = mob:handle_deploy(Service, State),
+    Reply = mob:handle_deploy(Service),
 
     ?assertEqual(1, meck:num_calls(service_parser, parse, [Service])),
     ?assertEqual(1, meck:num_calls(mob_dht, where_deployed, [ParsedService#service.name])),
-    ?assertEqual(State, NewState),
     ?assertEqual('already_deployed', Reply),
 
     stop_mocks([service_parser, mob_dht]).
@@ -67,14 +62,12 @@ should_reply_with_an_error_message_if_the_service_isnt_correct_test() ->
     WrongService = "[ a wrong service }",
     FakePeer = self(),
 
-    State = #state{},
     ErrorMessage = format_error,
 
     meck:expect(service, parse, fun(_Service) -> {error, ErrorMessage} end),
-    {Reply, NewState} = mob:handle_deploy(WrongService, State),
+    Reply = mob:handle_deploy(WrongService),
 
     ?assertEqual(ErrorMessage, Reply),
-    ?assertEqual(State, NewState),
 
     stop_mocks([service]).
 
@@ -82,12 +75,10 @@ should_known_if_a_service_is_locally_started_test() ->
     start_mocks([service_supervisor]),
     meck:expect(service_supervisor, is_started, fun(_ServiceName) -> true end),
 
-    State = #state{},
     ServiceName = my_service,
-    {Ret, NewState} = mob:handle_is_started(ServiceName, State),
+    Ret = mob:handle_is_started(ServiceName),
 
     ?assertEqual(1, meck:num_calls(service_supervisor, is_started, [ServiceName])),
-    ?assertEqual(State, NewState),
     ?assert(Ret),
     stop_mocks([service_supervisor]).
 

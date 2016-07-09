@@ -42,8 +42,8 @@ init([]) ->
     {ok, #state{}}.
 
 handle_call({is_started, ServiceName}, _From, State) ->
-    {Reply, NewState} = handle_is_started(ServiceName, State),
-    {reply, Reply, NewState};
+    Reply = handle_is_started(ServiceName),
+    {reply, Reply, State};
 
 handle_call(peer, _From, State) ->
     Reply = mob_dht:peer(),
@@ -54,22 +54,22 @@ handle_call({join, NodeName}, _From, State) ->
     {reply, ConnectionResult, State};
 
 handle_call({deploy, Service}, _From, State) ->
-    {Reply, NewState} = handle_deploy(Service, State),
-    {reply, Reply, NewState};
+    Reply = handle_deploy(Service),
+    {reply, Reply, State};
 
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
 
 handle_cast({run, Service}, State) ->
-    NewState = handle_run(Service, State),
-    {noreply, NewState};
+    handle_run(Service),
+    {noreply, State};
 handle_cast({restart, Service}, State) ->
-    NewState = handle_restart(Service, State),
-    {noreply, NewState};
+    handle_restart(Service),
+    {noreply, State};
 handle_cast({add_child, Parent, Child}, State) ->
-    NewState = handle_add_child(Parent, Child, State),
-    {noreply, NewState};
+    handle_add_child(Parent, Child),
+    {noreply, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -84,14 +84,13 @@ code_change(_OldVsn, State, _Extra) ->
 
 % Handlers
 
-handle_deploy(Service, State) ->
-    Reply = case service_parser:parse(Service) of
-                {ok, ParsedService} -> mob_router:deploy(ParsedService);
-                {error, Error} -> Error
-            end,
-    {Reply, State}.
+handle_deploy(Service) ->
+    case service_parser:parse(Service) of
+        {ok, ParsedService} -> mob_router:deploy(ParsedService);
+        {error, Error} -> Error
+    end.
 
-handle_run(Service, State) ->
+handle_run(Service) ->
     %% XXX Currently the service is annunced *BEFORE* the service
     %% is really spawned. To be sure we should notify this module
     %% when the service is really spawned and proceed with the
@@ -100,20 +99,16 @@ handle_run(Service, State) ->
     Services = mob_dht:services(),
     ServicesList = sets:to_list(Services),
     service_supervisor:run(Service, ServicesList),
-    mob_dht:announce_spawned_service(Service, node_name()),
-    State.
+    mob_dht:announce_spawned_service(Service, node_name()).
 
-handle_is_started(ServiceName, State) ->
-    Reply = service_supervisor:is_started(ServiceName),
-    {Reply, State}.
+handle_is_started(ServiceName) ->
+    service_supervisor:is_started(ServiceName).
 
-handle_restart(ServiceName, State) ->
-    service_supervisor:restart(ServiceName),
-    State.
+handle_restart(ServiceName) ->
+    service_supervisor:restart(ServiceName).
 
-handle_add_child(Parent, Child, State) ->
-    service_supervisor:add_child(Parent, Child),
-    State.
+handle_add_child(Parent, Child) ->
+    service_supervisor:add_child(Parent, Child).
 
 -ifdef(TEST).
 -compile([export_all]).
