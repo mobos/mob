@@ -6,10 +6,7 @@
 -export([start_link/0]).
 -export([join/1]).
 -export([run/1]).
--export([remotely_restart/1]).
--export([remotely_add_child/2]).
 -export([deploy/1]).
--export([is_remotely_started/1]).
 -export([node_name/0]).
 
 %% gen_server callbacks
@@ -39,19 +36,14 @@ join(NodeName) ->
 node_name() ->
     node().
 
-is_remotely_started(ServiceName) ->
-    gen_server:call(mob, {is_remotely_started, ServiceName}).
-
-remotely_restart(ServiceName) ->
-    gen_server:call(mob, {remotely_restart, ServiceName}).
-
-remotely_add_child(ParentName, ChildName) ->
-    gen_server:call(mob, {remotely_add_child, ParentName, ChildName}).
-
 %% Callbacks
 
 init([]) ->
     {ok, #state{}}.
+
+handle_call({is_started, ServiceName}, _From, State) ->
+    {Reply, NewState} = handle_is_started(ServiceName, State),
+    {reply, Reply, NewState};
 
 handle_call(peer, _From, State) ->
     Reply = mob_dht:peer(),
@@ -63,22 +55,6 @@ handle_call({join, NodeName}, _From, State) ->
 
 handle_call({deploy, Service}, _From, State) ->
     {Reply, NewState} = handle_deploy(Service, State),
-    {reply, Reply, NewState};
-
-handle_call({is_started, ServiceName}, _From, State) ->
-    {Reply, NewState} = handle_is_started(ServiceName, State),
-    {reply, Reply, NewState};
-
-handle_call({is_remotely_started, Service}, _From, State) ->
-    {Reply, NewState} = handle_is_remotely_started(Service, State),
-    {reply, Reply, NewState};
-
-handle_call({remotely_restart, Service}, _From, State) ->
-    {Reply, NewState} = handle_remotely_restart(Service, State),
-    {reply, Reply, NewState};
-
-handle_call({remotely_add_child, Parent, Child}, _From, State) ->
-    {Reply, NewState} = handle_remotely_add_child(Parent, Child, State),
     {reply, Reply, NewState};
 
 handle_call(_Request, _From, State) ->
@@ -134,18 +110,6 @@ handle_is_started(ServiceName, State) ->
 handle_restart(ServiceName, State) ->
     service_supervisor:restart(ServiceName),
     State.
-
-handle_is_remotely_started(ServiceName, State) ->
-    Ret = mob_router:is_started(ServiceName),
-    {Ret, State}.
-
-handle_remotely_restart(ServiceName, State) ->
-    Ret = mob_router:restart(ServiceName),
-    {Ret, State}.
-
-handle_remotely_add_child(Parent, Child, State) ->
-    Ret = mob_router:add_child(Parent, Child),
-   {Ret, State}.
 
 handle_add_child(Parent, Child, State) ->
     service_supervisor:add_child(Parent, Child),
