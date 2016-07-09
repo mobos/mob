@@ -1,41 +1,36 @@
 -include_lib("eunit/include/eunit.hrl").
+-include_lib("test_macro.hrl").
 
-should_ask_if_a_service_is_remotely_started_test() ->
-    start_mocks([remote_mob, mob_dht]),
-    FakeNode = fake_node,
+-define(FAKE_NODE, '0000@fakenode').
+-define(SERVICE_NAME, 'my_service').
 
-    meck:expect(mob_dht, where_deployed, fun(_) -> {found, FakeNode} end),
-    meck:expect(remote_mob, is_started, fun(_, _) -> true end),
+start() ->
+    meck:new(remote_mob, [no_link]),
+    meck:new(mob_dht, [no_link]).
 
-    ServiceName = my_service,
-    Result = mob_router:is_started(my_service),
+teardown(_) ->
+    ?assert(meck:validate(remote_mob)),
+    ?assert(meck:validate(mob_dht)),
+    meck:unload(remote_mob),
+    meck:unload(mob_dht).
 
-    ?assertEqual(1, meck:num_calls(mob_dht, where_deployed, [ServiceName])),
-    ?assertEqual(1, meck:num_calls(remote_mob, is_started, [FakeNode, ServiceName])),
-    ?assert(Result),
-    stop_mocks([remote_mob, mob_dht]).
+mob_router_suite_test_() ->
+     [?setup(fun locate_a_service_and_ask_if_it_is_started/1),
+      ?setup(fun locate_a_parent_service_and_add_a_child_to_it/1)].
 
-should_add_a_child_a_to_a_remotely_spawned_parent_test() ->
-    start_mocks([mob_dht, remote_mob]),
-    FakeNode = self(),
+locate_a_service_and_ask_if_it_is_started(_) ->
+    meck:expect(mob_dht, where_deployed, fun(?SERVICE_NAME) -> {found, ?FAKE_NODE} end),
+    meck:expect(remote_mob, is_started, fun(?FAKE_NODE, ?SERVICE_NAME) -> true end),
 
-    meck:expect(mob_dht, where_deployed, fun(_ServiceName) -> {found, FakeNode} end),
-    meck:expect(remote_mob, add_child, fun(_Node, _Parent, _Child) -> ok end),
+    Result = mob_router:is_started(?SERVICE_NAME),
 
-    Parent = parent,
-    Child = child,
-    mob_router:add_child(Parent, Child),
-    ?assertEqual(1, meck:num_calls(mob_dht, where_deployed, [Parent])),
-    ?assertEqual(1, meck:num_calls(remote_mob, add_child, [FakeNode, Parent, Child])),
-    stop_mocks([mob_dht, remote_mob]).
+    [?_assert(Result)].
 
-start_mocks([]) -> ok;
-start_mocks([Mod | Modules]) ->
-    meck:new(Mod, [non_strict]),
-    start_mocks(Modules).
 
-stop_mocks([]) -> ok;
-stop_mocks([Mod | Modules]) ->
-    ?assert(meck:validate(Mod)),
-    meck:unload(Mod),
-    stop_mocks(Modules).
+locate_a_parent_service_and_add_a_child_to_it(_) ->
+    meck:expect(mob_dht, where_deployed, fun(?SERVICE_NAME) -> {found, ?FAKE_NODE} end),
+    meck:expect(remote_mob, add_child, fun(?FAKE_NODE, ?SERVICE_NAME, another_service) -> ok end),
+
+    Result = mob_router:add_child(?SERVICE_NAME, another_service),
+
+    [?_assertEqual(ok, Result)].
