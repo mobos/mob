@@ -1,94 +1,79 @@
 -include_lib("eunit/include/eunit.hrl").
+-include_lib("test_macro.hrl").
 
-should_find_the_correct_node_and_deploy_a_service_test() ->
-    start_mocks([service_parser, mob_dht, remote_mob]),
+-define(SERVICE_DESCRIPTOR, "{\"name\": \"my_service\",
+                              \"provider\": \"bash\",
+                              \"params\": {
+                                    \"command\": \"a command\"
+                              }}").
+-define(PARSED_SERVICE, #service{name = 'my_service',
+                                 provider = 'bash',
+                                 params = #{
+                                   "command" => "a command"}
+                                }).
+-define(FAKE_NODE, '0000@fakenode').
 
-    Service = "{
-                 \"name\": \"my_service\",
-                 \"provider\": \"bash\",
-                 \"params\": {
-                     \"command\": \"a command\"
-                 }
-               }",
+start() ->
+    meck:new(service_parser, [no_link]),
+    meck:new(mob_router, [no_link]),
+    meck:new(service_supervisor, [no_link]).
 
-    FakeNode = fake_node,
-    ParsedService = #service{name = 'my_service', provider = 'bash', params = #{"command" => "a command"}},
+teardown(_) ->
+    ?assert(meck:validate(service_parser)),
+    ?assert(meck:validate(mob_router)),
+    ?assert(meck:validate(service_supervisor)),
+    meck:unload(service_parser),
+    meck:unload(mob_router),
+    meck:unload(service_supervisor).
 
-    meck:expect(service_parser, parse, fun(_) -> {ok, ParsedService} end),
-    meck:expect(mob_dht, where_deployed, fun(_) -> {error, not_found} end),
-    meck:expect(mob_dht, find_available_node, fun(_) -> {ok, FakeNode} end),
-    meck:expect(remote_mob, run, fun(_, _) -> ok end),
+mob_suite_test_() ->
+     [?setup(fun parse_a_service_descriptor_and_deploy/1),
+      ?setup(fun reply_with_the_selected_node_when_a_service_is_deployed/1),
+      ?setup(fun reply_with_an_error_message_if_the_service_is_already_deployed/1),
+      ?setup(fun reply_with_an_error_message_if_the_service_descriptor_has_a_wrong_format/1),
+      ?setup(fun should_known_if_a_service_is_locally_started/1)].
 
-    Reply = mob:handle_deploy(Service),
+parse_a_service_descriptor_and_deploy(_) ->
+    meck:expect(service_parser, parse, fun(_) -> {ok, ?PARSED_SERVICE} end),
+    meck:expect(mob_router, deploy, fun(_) -> ?FAKE_NODE end),
 
-    ?assertEqual(1, meck:num_calls(service_parser, parse, [Service])),
-    ?assertEqual(1, meck:num_calls(mob_dht, where_deployed, [ParsedService#service.name])),
-    ?assertEqual(1, meck:num_calls(mob_dht, find_available_node, [ParsedService])),
-    ?assertEqual(1, meck:num_calls(remote_mob, run, [FakeNode, ParsedService])),
-    ?assertEqual(FakeNode, Reply),
+    mob:handle_deploy(?SERVICE_DESCRIPTOR),
 
-    stop_mocks([service_parser, mob_dht, remote_mob]).
+    [?_assertEqual(1, meck:num_calls(service_parser, parse, [?SERVICE_DESCRIPTOR])),
+     ?_assertEqual(1, meck:num_calls(mob_router, deploy, [?PARSED_SERVICE]))].
 
 
-should_not_deploy_an_already_deployed_service_test() ->
-    start_mocks([service_parser, mob_dht]),
+reply_with_the_selected_node_when_a_service_is_deployed(_) ->
+    meck:expect(service_parser, parse, fun(_) -> {ok, ?PARSED_SERVICE} end),
+    meck:expect(mob_router, deploy, fun(_) -> ?FAKE_NODE end),
 
-    Service = "{
-                 \"name\": \"my_service\",
-                 \"provider\": \"bash\",
-                 \"params\": {
-                     \"command\": \"a command\"
-                 }
-               }",
+    Reply = mob:handle_deploy(?SERVICE_DESCRIPTOR),
 
-    FakePeer = self(),
-    FakeNode = fake_node,
+    [?_assertEqual(?FAKE_NODE, Reply)].
 
-    ParsedService = #service{name = 'my_service', provider = 'bash', params = #{"command" => "a command"}},
+reply_with_an_error_message_if_the_service_is_already_deployed(_) ->
+    meck:expect(service_parser, parse, fun(_) -> {ok, ?PARSED_SERVICE} end),
+    meck:expect(mob_router, deploy, fun(_) -> already_deployed end),
 
-    meck:expect(service_parser, parse, fun(_) -> {ok, ParsedService} end),
-    meck:expect(mob_dht, where_deployed, fun(_) -> {found, FakeNode} end),
+    Reply = mob:handle_deploy(?SERVICE_DESCRIPTOR),
 
-    Reply = mob:handle_deploy(Service),
+    [?_assertEqual('already_deployed', Reply)].
 
-    ?assertEqual(1, meck:num_calls(service_parser, parse, [Service])),
-    ?assertEqual(1, meck:num_calls(mob_dht, where_deployed, [ParsedService#service.name])),
-    ?assertEqual('already_deployed', Reply),
 
-    stop_mocks([service_parser, mob_dht]).
-
-should_reply_with_an_error_message_if_the_service_isnt_correct_test() ->
-    meck:new(service, [non_strict]),
+reply_with_an_error_message_if_the_service_descriptor_has_a_wrong_format(_) ->
     WrongService = "[ a wrong service }",
-    FakePeer = self(),
-
     ErrorMessage = format_error,
+    meck:expect(service_parser, parse, fun(_Service) -> {error, ErrorMessage} end),
 
-    meck:expect(service, parse, fun(_Service) -> {error, ErrorMessage} end),
     Reply = mob:handle_deploy(WrongService),
 
-    ?assertEqual(ErrorMessage, Reply),
+    [?_assertEqual(ErrorMessage, Reply)].
 
-    stop_mocks([service]).
-
-should_known_if_a_service_is_locally_started_test() ->
-    start_mocks([service_supervisor]),
+should_known_if_a_service_is_locally_started(_) ->
     meck:expect(service_supervisor, is_started, fun(_ServiceName) -> true end),
-
     ServiceName = my_service,
+
     Ret = mob:handle_is_started(ServiceName),
 
-    ?assertEqual(1, meck:num_calls(service_supervisor, is_started, [ServiceName])),
-    ?assert(Ret),
-    stop_mocks([service_supervisor]).
-
-start_mocks([]) -> ok;
-start_mocks([Mod | Modules]) ->
-    meck:new(Mod, [non_strict]),
-    start_mocks(Modules).
-
-stop_mocks([]) -> ok;
-stop_mocks([Mod | Modules]) ->
-    ?assert(meck:validate(Mod)),
-    meck:unload(Mod),
-    stop_mocks(Modules).
+    [?_assertEqual(1, meck:num_calls(service_supervisor, is_started, [ServiceName])),
+     ?_assert(Ret)].
