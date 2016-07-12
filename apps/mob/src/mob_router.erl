@@ -12,7 +12,7 @@ deploy(ParsedService) ->
         {error, not_found} ->
             case mob_dht:find_available_node(ParsedService) of
                 {ok, Node} ->
-                    remote_mob:run(Node, ParsedService),
+                    mob_node:run(Node, ParsedService),
                     Node;
                 {error, Error} -> Error
             end;

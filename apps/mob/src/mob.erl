@@ -5,7 +5,6 @@
 %% API
 -export([start_link/0]).
 -export([join/1]).
--export([run/1]).
 -export([deploy/1]).
 -export([node_name/0]).
 
@@ -26,9 +25,6 @@ start_link() ->
 
 deploy(Service) ->
     gen_server:call(mob, {deploy, Service}).
-
-run(Service) ->
-    gen_server:cast(mob, {run, Service}).
 
 join(NodeName) ->
     gen_server:call(mob, {join, NodeName}).
@@ -61,9 +57,6 @@ handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
 
-handle_cast({run, Service}, State) ->
-    handle_run(Service),
-    {noreply, State};
 handle_cast({restart, Service}, State) ->
     handle_restart(Service),
     {noreply, State};
@@ -89,17 +82,6 @@ handle_deploy(Service) ->
         {ok, ParsedService} -> mob_router:deploy(ParsedService);
         {error, Error} -> Error
     end.
-
-handle_run(Service) ->
-    %% XXX Currently the service is annunced *BEFORE* the service
-    %% is really spawned. To be sure we should notify this module
-    %% when the service is really spawned and proceed with the
-    %% announce
-    log:notice("[~p] Run request for ~p", [?MODULE, Service#service.name]),
-    Services = mob_dht:services(),
-    ServicesList = sets:to_list(Services),
-    service_supervisor:run(Service, ServicesList),
-    mob_dht:announce_spawned_service(Service, node_name()).
 
 handle_is_started(ServiceName) ->
     service_supervisor:is_started(ServiceName).
