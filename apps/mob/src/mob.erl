@@ -37,10 +37,6 @@ node_name() ->
 init([]) ->
     {ok, #state{}}.
 
-handle_call({is_started, ServiceName}, _From, State) ->
-    Reply = handle_is_started(ServiceName),
-    {reply, Reply, State};
-
 handle_call(peer, _From, State) ->
     Reply = mob_dht:peer(),
     {reply, Reply, State};
@@ -57,12 +53,6 @@ handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
 
-handle_cast({restart, Service}, State) ->
-    handle_restart(Service),
-    {noreply, State};
-handle_cast({add_child, Parent, Child}, State) ->
-    handle_add_child(Parent, Child),
-    {noreply, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -82,15 +72,6 @@ handle_deploy(Service) ->
         {ok, ParsedService} -> mob_router:deploy(ParsedService);
         {error, Error} -> Error
     end.
-
-handle_is_started(ServiceName) ->
-    service_supervisor:is_started(ServiceName).
-
-handle_restart(ServiceName) ->
-    service_supervisor:restart(ServiceName).
-
-handle_add_child(Parent, Child) ->
-    service_supervisor:add_child(Parent, Child).
 
 -ifdef(TEST).
 -compile([export_all]).

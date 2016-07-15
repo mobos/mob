@@ -15,23 +15,19 @@
 
 start() ->
     meck:new(service_parser, [no_link]),
-    meck:new(mob_router, [no_link]),
-    meck:new(service_supervisor, [no_link]).
+    meck:new(mob_router, [no_link]).
 
 teardown(_) ->
     ?assert(meck:validate(service_parser)),
     ?assert(meck:validate(mob_router)),
-    ?assert(meck:validate(service_supervisor)),
     meck:unload(service_parser),
-    meck:unload(mob_router),
-    meck:unload(service_supervisor).
+    meck:unload(mob_router).
 
 mob_suite_test_() ->
      [?setup(fun parse_a_service_descriptor_and_deploy/1),
       ?setup(fun reply_with_the_selected_node_when_a_service_is_deployed/1),
       ?setup(fun reply_with_an_error_message_if_the_service_is_already_deployed/1),
-      ?setup(fun reply_with_an_error_message_if_the_service_descriptor_has_a_wrong_format/1),
-      ?setup(fun should_known_if_a_service_is_locally_started/1)].
+      ?setup(fun reply_with_an_error_message_if_the_service_descriptor_has_a_wrong_format/1)].
 
 parse_a_service_descriptor_and_deploy(_) ->
     meck:expect(service_parser, parse, fun(_) -> {ok, ?PARSED_SERVICE} end),
@@ -68,12 +64,3 @@ reply_with_an_error_message_if_the_service_descriptor_has_a_wrong_format(_) ->
     Reply = mob:handle_deploy(WrongService),
 
     [?_assertEqual(ErrorMessage, Reply)].
-
-should_known_if_a_service_is_locally_started(_) ->
-    meck:expect(service_supervisor, is_started, fun(_ServiceName) -> true end),
-    ServiceName = my_service,
-
-    Ret = mob:handle_is_started(ServiceName),
-
-    [?_assertEqual(1, meck:num_calls(service_supervisor, is_started, [ServiceName])),
-     ?_assert(Ret)].

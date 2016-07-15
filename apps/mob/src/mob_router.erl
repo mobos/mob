@@ -21,19 +21,19 @@ deploy(ParsedService) ->
 
 restart(ServiceName) ->
     case mob_dht:where_deployed(ServiceName) of
-        {found, Node} -> remote_mob:restart(Node, ServiceName);
+        {found, Node} -> mob_node:restart(Node, ServiceName);
         _             -> not_found
     end.
 
 add_child(ParentName, ChildName) ->
     case mob_dht:where_deployed(ParentName) of
-        {found, Node} -> remote_mob:add_child(Node, ParentName, ChildName);
+        {found, Node} -> mob_node:add_child(Node, ParentName, ChildName);
         _ -> not_found
     end.
 
 is_started(ServiceName) ->
     case mob_dht:where_deployed(ServiceName) of
-        {found, Node} -> remote_mob:is_started(Node, ServiceName);
+        {found, Node} -> mob_node:is_started(Node, ServiceName);
         _ -> false
     end.
 
