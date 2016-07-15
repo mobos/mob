@@ -1,3 +1,5 @@
+-module(process_t).
+
 -include_lib("eunit/include/eunit.hrl").
 
 translate_normal_exit_to_zero_exit_code_test() ->

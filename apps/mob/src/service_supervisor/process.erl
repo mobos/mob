@@ -75,5 +75,4 @@ translate_status({exit_status, Exit}) ->
 
 -ifdef(TEST).
 -compile([export_all]).
--include_lib("../../test/process.hrl").
 -endif.

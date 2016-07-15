@@ -1,5 +1,7 @@
+-module(mob_node_t).
+
 -include_lib("eunit/include/eunit.hrl").
--include_lib("apps/mob/test/test_macro.hrl").
+-include_lib("test/test_macro.hrl").
 
 start() ->
     meck:new(service_supervisor, [no_link]).
@@ -16,7 +18,6 @@ check_if_a_service_is_started(_) ->
     ServiceName = my_service,
 
     Ret = mob_node:handle_is_started(ServiceName),
-    Ret = true,
 
     [?_assertEqual(1, meck:num_calls(service_supervisor, is_started, [ServiceName])),
      ?_assert(Ret)].

@@ -167,5 +167,4 @@ merge_key_sets(PeerA, PeerB, Keys) ->
 
 -ifdef(TEST).
 -compile([export_all]).
--include_lib("../test/mob_dht.hrl").
 -endif.

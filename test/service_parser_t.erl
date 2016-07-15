@@ -1,4 +1,8 @@
+-module(service_parser_t).
+
 -include_lib("eunit/include/eunit.hrl").
+
+-include("apps/mob/src/service_supervisor/service.hrl").
 
 -define(SERVICE_NAME, my_service).
 -define(SERVICE_PROVIDER, bash).

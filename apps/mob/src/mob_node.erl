@@ -93,5 +93,4 @@ handle_add_child(Parent, Child) ->
 
 -ifdef(TEST).
 -compile([export_all]).
--include_lib("../test/mob_node.hrl").
 -endif.

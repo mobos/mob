@@ -1,4 +1,8 @@
+-module(mob_dht_t).
+
 -include_lib("eunit/include/eunit.hrl").
+
+-include("apps/mob/src/service_supervisor/service.hrl").
 
 -define(SERVICE, #service{name = 'my_service', provider = 'bash', params = #{}}).
 -define(SECOND_SERVICE, #service{name = 'my_second_service', provider = 'bash', params = #{}}).

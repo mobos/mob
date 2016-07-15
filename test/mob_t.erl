@@ -1,5 +1,9 @@
+-module(mob_t).
+
 -include_lib("eunit/include/eunit.hrl").
--include_lib("test_macro.hrl").
+-include_lib("test/test_macro.hrl").
+
+-include("apps/mob/src/service_supervisor/service.hrl").
 
 -define(SERVICE_DESCRIPTOR, "{\"name\": \"my_service\",
                               \"provider\": \"bash\",
@@ -12,6 +16,8 @@
                                    "command" => "a command"}
                                 }).
 -define(FAKE_NODE, '0000@fakenode').
+
+-record(state, {}).
 
 start() ->
     meck:new(service_parser, [no_link]),

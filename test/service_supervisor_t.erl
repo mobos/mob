@@ -1,9 +1,15 @@
+-module(service_supervisor_t).
+
 -include_lib("eunit/include/eunit.hrl").
+
+-include("apps/mob/src/service_supervisor/service.hrl").
 
 -define(SERVICE, #service{name = myservice,
                           provider = bash,
                           params = #{"command" => "my command"},
                           requires = []}).
+
+-record(state, {spawned}).
 
 should_run_a_service_test() ->
     meck:new(service, [non_strict]),
@@ -14,7 +20,7 @@ should_run_a_service_test() ->
 
     State = #state{spawned = []},
     Children = [],
-    NewState = handle_run(?SERVICE, Children, State),
+    NewState = service_supervisor:handle_run(?SERVICE, Children, State),
 
     ?assertEqual(1, meck:num_calls(service, spawn, [?SERVICE, Children])),
     ?assertEqual(1, meck:num_calls(service, restart, [?SERVICE#service.name])),
@@ -31,7 +37,7 @@ should_not_try_to_spawn_an_already_spawned_service_test() ->
     State = #state{spawned = [myservice]},
 
     Children = [],
-    NewState = handle_run(?SERVICE, Children, State),
+    NewState = service_supervisor:handle_run(?SERVICE, Children, State),
 
     ?assertEqual(1, meck:num_calls(service, restart, [?SERVICE#service.name])),
     ?assertEqual(State, NewState),
@@ -54,7 +60,7 @@ should_spawn_but_not_start_a_service_if_its_dependencies_arent_started_test() ->
     Service = #service{name = myservice, provider = bash, requires = [DependencyName]},
     ExpectedState = #state{spawned = [Service#service.name, DependencyName]},
     Children = [],
-    NewState = handle_run(Service, Children, State),
+    NewState = service_supervisor:handle_run(Service, Children, State),
 
     ?assertEqual(1, meck:num_calls(service, spawn, [Service, Children])),
     ?assertEqual(1, meck:num_calls(service, add_child, [DependencyName, Service#service.name])),
@@ -82,7 +88,7 @@ should_search_on_the_network_if_a_dependencies_isnt_found_locally_test() ->
     Service = #service{name = myservice, provider = bash, requires = [DependencyName]},
     ExpectedState = #state{spawned = [Service#service.name]},
     Children = [],
-    NewState = handle_run(Service, Children, State),
+    NewState = service_supervisor:handle_run(Service, Children, State),
 
     ?assertEqual(1, meck:num_calls(service, spawn, [Service, Children])),
     ?assertEqual(1, meck:num_calls(mob_router, add_child, [DependencyName, Service#service.name])),

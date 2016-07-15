@@ -13,5 +13,4 @@ need_restart(none, _ExitInfo) -> false.
 
 -ifdef(TEST).
 -compile([export_all]).
--include_lib("../../test/restart_policy.hrl").
 -endif.

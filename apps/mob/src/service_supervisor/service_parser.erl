@@ -39,5 +39,4 @@ binary_keylist_to_list(List) ->
 
 -ifdef(TEST).
 -compile([export_all]).
--include_lib("../../test/service_parser.hrl").
 -endif.

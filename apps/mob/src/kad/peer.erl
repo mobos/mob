@@ -180,7 +180,3 @@ hash_key(Key) ->
     %% XXX: NumberKey should be removed when ID become binary
     <<NumberKey:?KEY_LENGTH, _/bitstring>> = HashedKey,
     NumberKey.
-
--ifdef(TEST).
--include_lib("../../test/peer.hrl").
--endif.

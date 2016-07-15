@@ -1,5 +1,7 @@
+-module(mob_router_t).
+
 -include_lib("eunit/include/eunit.hrl").
--include_lib("test_macro.hrl").
+-include_lib("test/test_macro.hrl").
 
 -define(FAKE_NODE, '0000@fakenode').
 -define(SERVICE_NAME, 'my_service').

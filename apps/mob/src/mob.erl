@@ -75,5 +75,4 @@ handle_deploy(Service) ->
 
 -ifdef(TEST).
 -compile([export_all]).
--include_lib("../test/mob.hrl").
 -endif.

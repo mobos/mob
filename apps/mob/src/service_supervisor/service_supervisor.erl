@@ -160,5 +160,4 @@ notify_parent(Parent, Child, State) ->
 
 -ifdef(TEST).
 -compile([export_all]).
--include_lib("../../test/service_supervisor.hrl").
 -endif.

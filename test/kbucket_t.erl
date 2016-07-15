@@ -1,5 +1,7 @@
+-module(kbucket_t).
+
 -include_lib("eunit/include/eunit.hrl").
--include_lib("test_macro.hrl").
+-include_lib("test/test_macro.hrl").
 
 -define(PEER_ID, 2#1101).
 -define(ALPHA, 3).
