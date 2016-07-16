@@ -93,8 +93,8 @@ code_change(_OldVsn, State, _Extra) ->
 %% Handlers
 
 handle_join(NodeName, Peer) ->
-    ConnectionResult = remote_mob:connect(NodeName),
-    BootstrapPeer = remote_mob:peer(NodeName),
+    ConnectionResult = mob_node:connect(NodeName),
+    BootstrapPeer = mob_node:peer(NodeName),
 
     UpdatedProviders = merge_key_sets(Peer, BootstrapPeer, ?KNOWN_PROVIDERS),
     peer:join(Peer, BootstrapPeer),

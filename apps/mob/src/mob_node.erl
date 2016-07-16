@@ -4,11 +4,13 @@
 
 %% API
 -export([start_link/0]).
+-export([connect/1]).
 -export([run/2]).
 -export([is_started/2]).
 -export([restart/2]).
 -export([add_child/3]).
 -export([name/0]).
+-export([peer/1]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -24,6 +26,12 @@
 
 start_link() ->
     gen_server:start_link({local, mob_node}, mob_node, [], []).
+
+connect(Node) ->
+    net_kernel:connect_node(Node).
+
+peer(Node) ->
+    gen_server:call({mob_node, Node}, {peer}).
 
 name() ->
     node().
@@ -43,6 +51,9 @@ add_child(Node, Parent, Child) ->
 init([]) ->
     {ok, #state{}}.
 
+handle_call({peer}, _From, State) ->
+    Reply = handle_peer(),
+    {reply, Reply, State};
 handle_call({is_started, ServiceName}, _From, State) ->
     Reply = handle_is_started(ServiceName),
     {reply, Reply, State};
@@ -90,6 +101,9 @@ handle_restart(ServiceName) ->
 
 handle_add_child(Parent, Child) ->
     service_supervisor:add_child(Parent, Child).
+
+handle_peer() ->
+    mob_dht:peer().
 
 -ifdef(TEST).
 -compile([export_all]).

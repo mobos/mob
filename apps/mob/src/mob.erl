@@ -37,10 +37,6 @@ node_name() ->
 init([]) ->
     {ok, #state{}}.
 
-handle_call(peer, _From, State) ->
-    Reply = mob_dht:peer(),
-    {reply, Reply, State};
-
 handle_call({join, NodeName}, _From, State) ->
     ConnectionResult = mob_dht:join(NodeName),
     {reply, ConnectionResult, State};
