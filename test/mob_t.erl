@@ -17,8 +17,6 @@
                                 }).
 -define(FAKE_NODE, '0000@fakenode').
 
--record(state, {}).
-
 start() ->
     meck:new(service_parser, [no_link]),
     meck:new(mob_router, [no_link]).
