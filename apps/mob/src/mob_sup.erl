@@ -37,7 +37,19 @@ init([Args]) ->
                     type => worker},
 
                   #{id => mob,
-                    start => {mob, start_link, [Args]},
+                    start => {mob, start_link, []},
+                    restart => permanent,
+                    shutdown => brutal_kill,
+                    type => worker},
+
+                  #{id => mob_node,
+                    start => {mob_node, start_link, []},
+                    restart => permanent,
+                    shutdown => brutal_kill,
+                    type => worker},
+
+                  #{id => mob_dht,
+                    start => {mob_dht, start_link, [Args]},
                     restart => permanent,
                     shutdown => brutal_kill,
                     type => worker},

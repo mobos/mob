@@ -1,4 +1,8 @@
+-module(service_t).
+
 -include_lib("eunit/include/eunit.hrl").
+
+-include("apps/mob/src/service_supervisor/service.hrl").
 
 -define(FAKE_PROCESS, self()).
 -define(SIGTERM, 15).
@@ -11,6 +15,8 @@
                                  provider = ?SERVICE_PROVIDER,
                                  params = ?SERVICE_PARAMS,
                                  restart = none}).
+
+-record(state, {service, children, provider}).
 
 should_spawn_a_service_registering_its_name_test() ->
     Children = [],

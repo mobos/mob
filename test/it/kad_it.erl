@@ -1,6 +1,6 @@
--module(it).
+-module(kad_it).
 
--include_lib("test_macro.hrl").
+-include_lib("test/test_macro.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 -define(ALPHA, 3).

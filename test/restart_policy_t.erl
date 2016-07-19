@@ -1,3 +1,5 @@
+-module(restart_policy_t).
+
 -include_lib("eunit/include/eunit.hrl").
 
 always_restart_policy_test() ->

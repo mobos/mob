@@ -84,7 +84,7 @@ handle_run(Service, Children, State) ->
 handle_restart(ServiceName, State) ->
     Ret = case is_spawned(ServiceName, State) of
             true -> start_service(ServiceName, State);
-            false -> mob:remotely_restart(ServiceName)
+            false -> mob_router:restart(ServiceName)
         end,
     log:notice("[~p] Restarting Service: ~p [~p]", [?MODULE, ServiceName, Ret]),
     State.
@@ -126,7 +126,7 @@ are_started(Dependencies, State) ->
 is_globally_started(ServiceName, State) ->
     case is_spawned(ServiceName, State) of
         true -> service:is_started(ServiceName);
-        false -> mob:is_remotely_started(ServiceName)
+        false -> mob_router:is_started(ServiceName)
     end.
 
 is_locally_started(ServiceName, State) ->
@@ -155,10 +155,9 @@ notify_parents(Service, State) ->
 notify_parent(Parent, Child, State) ->
     case is_spawned(Parent, State) of
         true -> service:add_child(Parent, Child);
-        false -> mob:remotely_add_child(Parent, Child)
+        false -> mob_router:add_child(Parent, Child)
     end.
 
 -ifdef(TEST).
 -compile([export_all]).
--include_lib("../../test/service_supervisor.hrl").
 -endif.

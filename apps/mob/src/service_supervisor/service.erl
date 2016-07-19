@@ -140,5 +140,4 @@ handle_down(ExitCode, #state{service = Service, children = Children}) ->
 
 -ifdef(TEST).
 -compile([export_all]).
--include_lib("../../test/service.hrl").
 -endif.
