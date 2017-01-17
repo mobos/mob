@@ -9,9 +9,9 @@
      terminate/2,
      code_change/3]).
 
--define(SERVER, ?MODULE).
+-include("bash.hrl").
 
--record(state, {params, process}).
+-define(SERVER, ?MODULE).
 
 init(Params) ->
     {ok, #state{params = Params}}.
@@ -45,5 +45,5 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 -ifdef(TEST).
--include_lib("../test/bash.hrl").
+-compile([export_all]).
 -endif.

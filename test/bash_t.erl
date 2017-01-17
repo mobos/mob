@@ -1,4 +1,8 @@
+-module(bash_t).
+
 -include_lib("eunit/include/eunit.hrl").
+
+-include("apps/mob/src/bash.hrl").
 
 execute_process_with_the_specified_command_test() ->
     FakeFrom = self(),
