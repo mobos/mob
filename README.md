@@ -4,9 +4,9 @@ Mob aim to be a distributed, decentralized, fault-tolerant and self-organized ne
 
 # What is the state of the project
 
-At the time the project is intended as a proof of concept, developed during an internship. It is **not** production-ready and it is still in [development](https://github.com/mobos/mob/issues).
+Currently the project is intended as a proof of concept, developed during an internship. It is **not** production-ready and it is still in [development](https://github.com/mobos/mob/issues).
 
-The rest of this README will introduce the main architecture and components of Mob.
+The rest of this README will introduce Mob's main architecture and components.
 
 # Architecture
 
@@ -14,7 +14,7 @@ The rest of this README will introduce the main architecture and components of M
 
 ![mob network](/docs/mob-network.png?raw=true)
 
-It consists of nodes that connected to each other build a **peer-to-peer network**. The network has the task to **decentralize** information, to make system **fault-tolerant** and to mantain all the services deployed in it.
+It consists of nodes which connected to each other build a **peer-to-peer network**. The network has the task to **decentralize** information, to make system **fault-tolerant** and to mantain all the services deployed in it.
 
 ## Mob Node Overview
 
@@ -24,7 +24,8 @@ Each node consists of three main components:
 
 ### Interface
 
-The interface of a node allows us to communicate with the entire network in order to perform queries or commands, such as the retrieval of all services and its statuses or deployment of a new or updated service. The interface component is purely optional and it is intended to be used for control purposes.
+The interface of a node allows us to communicate with the entire network in order to perform queries or commands, such as
+the retrieval of all services and their status, the deployment of a new or updated service, and so on. The interface component is purely optional and it is intended to be used for control purposes.
 
 ### Peer
 
@@ -32,7 +33,7 @@ Here is the place where portion of the network's information is stored and maint
 
 ### Supervisor
 
-The main task of this component is to handle all the deployed services by maintaining the life cycle of each one and satisfying constraints like restart policies or dependency with other services.
+The main task of this component is to handle all the deployed services by maintaining the life cycle of each one, satisfying constraints like restart policies or dependencies with other services.
 
 # The code
 
