@@ -1,0 +1,18 @@
+language: erlang
+
+before_install:
+    - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+    - sudo apt-get -qq update
+    - sudo apt-get install -y gcc-4.7 g++-4.7
+    - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.7 60 --slave /usr/bin/g++ g++ /usr/bin/g++-4.7
+
+install:
+    - wget https://s3.amazonaws.com/rebar3/rebar3 && chmod +x rebar3
+
+script:
+    - ./rebar3 as prod compile
+    - ./rebar3 eunit --dir test/
+    - ./rebar3 eunit --dir test/it
+
+otp_release:
+    - 18.0
