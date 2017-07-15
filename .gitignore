@@ -16,4 +16,4 @@ _deps
 _plugins
 _tdeps
 logs
-_build
+_build*.lock
