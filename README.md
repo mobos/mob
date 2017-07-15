@@ -1,4 +1,4 @@
-# Mob
+# Mob ![mob master build](https://travis-ci.org/mobos/mob.svg?branch=master)
 
 Mob aim to be a distributed, decentralized, fault-tolerant and self-organized network that enable the deployment and scaling of a set of services.
 
